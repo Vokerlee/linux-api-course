@@ -18,6 +18,7 @@ set(HEADERS
 set(SOURCES
         main.c
         biz_error.c
+        biz_handler.c
 )
 
 # EXECUTABLE FILE
@@ -26,9 +27,6 @@ add_executable(${FILE_NAME} ${SOURCES})
 #########################################################################
 
 # ASSEMBLY OPTIONS
-if(NOT CMAKE_CXX_EXTENSIONS)
-    set(CMAKE_CXX_EXTENSIONS OFF)
-endif()
 
 add_compile_options(
     -Werror
