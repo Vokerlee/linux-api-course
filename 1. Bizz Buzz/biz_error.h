@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
 
 int error_input(int argc, char *argv[]);
 
@@ -19,11 +21,11 @@ void biz_error_dump(FILE *dump_file, int biz_error);
 
 enum biz_error
 {
-    NO_INPUT       = -1,
-    ARGS_UNDERFLOW = -2,
-    ARGS_OVERFLOW  = -3,
-    READ_SIZE      = -4,
-    BAD_ALLOC      = -5,
+    NO_INPUT       = -10,
+    ARGS_UNDERFLOW = -20,
+    ARGS_OVERFLOW  = -30,
+    READ_SIZE      = -40,
+    BAD_ALLOC      = -50,
 };
 
 #endif // BIZ_ERRORS_H
