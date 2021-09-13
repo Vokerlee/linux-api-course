@@ -1,5 +1,7 @@
 #include "biz_error.h"
 
+#include <string.h>
+
 #define ERR_CASE(bizz_err, str_err)                                         \
     case bizz_err:                                                          \
         fprintf(dump_file, str_err);                                        \
@@ -31,7 +33,7 @@ void biz_error_dump(FILE *dump_file, int biz_error)
             ERR_CASE(BAD_ALLOC,      "bizz-buzz error: allocation memory error\n")
 
             default:                                                     
-                fprintf(dump_file, "bizz-buzz undefined error: errno = %d\n", errno);                                       
+                fprintf(dump_file, "bizz-buzz undefined error: %s\n", strerror(errno));                                       
                 exit(NO_INPUT);                                                    
                 break; 
         }

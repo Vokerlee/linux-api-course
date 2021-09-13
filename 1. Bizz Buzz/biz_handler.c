@@ -67,8 +67,8 @@ char *number_parsing(char *buffer, int *buffer_size)
     const char buzz[]      = "buzz";
     const char bizz_buzz[] = "bizzbuzz";
 
-    char*    p             = buffer; // counter (for convenience)
-    char**   endptr        = (char**) calloc(1, sizeof(char*)); 
+    char*      p           = buffer; // counter (for convenience)
+    char**     endptr      = (char**) calloc(1, sizeof(char*)); 
     if (!endptr)
         ASSERT_OK(BAD_ALLOC)
 
