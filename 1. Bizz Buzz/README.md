@@ -7,6 +7,7 @@ This program is just initial training program to handle some errors.
 Just print the following after your `git clone`:
 
 ```
+cd "1. BIZZ BUZZ"
 mkdir build
 cd build
 cmake ..

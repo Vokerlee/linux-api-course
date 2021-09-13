@@ -1,4 +1,4 @@
-#include "biz_error.h"
+#include "errors_vh.h"
 #include "biz_handler.h"
 
 #include <sys/stat.h>
@@ -8,16 +8,20 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 
 const char BIZZ[]      = "bizz";
 const char BUZZ[]      = "buzz";
 const char BIZZ_BUZZ[] = "bizz_buzz";
+
+const unsigned long BUFFER_SIZE = 4096;
 
 void biz_strings(int argc, char *argv[])
 {
     assert(argv);
 
 // Files opening
+
     errno = 0;
     int file_descr_in = open(argv[1], O_RDONLY);
     if (file_descr_in < 0)
@@ -28,145 +32,131 @@ void biz_strings(int argc, char *argv[])
     if (file_descr_out < 0)
         ASSERT_OK(errno)
 
-// Input file size
-    struct stat input = {0};
-    fstat(file_descr_in, &input);
+// Strings changes
 
-    size_t input_size = input.st_size;
+    char buffer_in [BUFFER_SIZE];
+    char buffer_out[BUFFER_SIZE];
 
-    char *buffer = (char *) calloc(input_size + 1, sizeof(char));
-    if (buffer == NULL)
-        ASSERT_OK(BAD_ALLOC)
+    if (memset(buffer_in,  0, BUFFER_SIZE) == 0)
+        ASSERT_OK(MEMSET)
 
-// Input is read
-    errno = 0;
-    int n_read = read(file_descr_in, buffer, input_size);
-    if (n_read == -1)
-        ASSERT_OK(errno)
-    else if (n_read != input_size)
-        ASSERT_OK(READ_SIZE)
+    if (memset(buffer_out, 0, BUFFER_SIZE) == 0)
+        ASSERT_OK(MEMSET)
 
-    char* output_buffer = number_parsing(buffer, &n_read);
-    int   output_size   = strlen(output_buffer);
+    int read_state    = 1;
 
-// Output is written
-    int n_write = write(file_descr_out, output_buffer, output_size); // writing whole file
-    if (n_write == -1)
-        ASSERT_OK(errno)
+    int n_in_symbols  = 0;
+    int n_out_symbols = 0;
+
+    int n_already_read = 0;
+
+    // Buffer analysis cycle
+    while (read_state)
+    {
+        // Reading to in-buffer
+        errno = 0;
+        int n_read = read(file_descr_in, buffer_in, BUFFER_SIZE);
+        if (n_read == -1)
+            ASSERT_OK(errno)
+        else if (n_read != BUFFER_SIZE)
+            read_state = 0;
+
+        int n_read_max  = n_read;
+        if (n_read == BUFFER_SIZE)
+        {
+            while (isdigit(buffer_in[n_read_max - 1]) && n_read_max > 0)
+                n_read_max--;
+        }
+
+        int n_write_max = BUFFER_SIZE;
+
+        while (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
+        {
+            // Writing all non-number symbols to out-buffer
+            while (isdigit(buffer_in[n_in_symbols]) == 0 && n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
+            {
+                buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
+                n_out_symbols++;
+                n_in_symbols++;
+            }
+
+            printf("%d %d\n", n_in_symbols, n_out_symbols);
+
+            if (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
+                biz_handle_number(&buffer_in[n_in_symbols], &buffer_out[n_out_symbols], &n_in_symbols, &n_out_symbols);
+
+            printf("%d %d %d %d\n", n_in_symbols, n_out_symbols, n_read_max, n_write_max);
+        }
+
+        // Writing out-buffer to file
+        int n_write = write(file_descr_out, buffer_out, n_out_symbols);
+        if (n_write == -1)
+            ASSERT_OK(errno)
+        else if (n_write != n_out_symbols)
+            ASSERT_OK(WRITE_SIZE) 
+
+        // Preparing to continue
+        n_already_read += n_in_symbols;
+        int lseek_state = lseek(file_descr_in, n_already_read, SEEK_SET);
+        if (lseek_state == -1)
+            ASSERT_OK(errno)
+
+        n_in_symbols  = 0;
+        n_out_symbols = 0;
+
+        if (memset(buffer_in,  0, BUFFER_SIZE) == 0)
+            ASSERT_OK(MEMSET)
+
+        if (memset(buffer_out, 0, BUFFER_SIZE) == 0)
+            ASSERT_OK(MEMSET)
+    }
 
 // Files closing
+
     close(file_descr_in);
     close(file_descr_out);
 }
 
-char *number_parsing(char *buffer, int *buffer_size)
+// Reads the number and prints it in a proper way with ptrs shifts
+static void biz_handle_number(char *in_start, char *out_start, int *n_in_symbols, int *n_out_symbols)
 {
-    assert(buffer);
+    // Number reading
+    char *num_start = in_start;
+    char *num_end   = NULL;
 
-    const char bizz[]      = "bizz";
-    const char buzz[]      = "buzz";
-    const char bizz_buzz[] = "bizzbuzz";
+    long number = strtol(num_start, &num_end, 0);
+    if (errno == ERANGE)
+        ASSERT_OK(ERANGE)
 
-    char*      p           = buffer; // counter (for convenience)
-    char**     endptr      = (char**) calloc(1, sizeof(char*)); 
-    if (!endptr)
-        ASSERT_OK(BAD_ALLOC)
+    long n_digits = num_end - num_start;
 
-    unsigned buf_offset    = 0;
-    long     number        = 0; 
+    // Number writing
+    int n_write = 0;
 
-    while(*p)
+    if (number % 15 == 0)
     {
-        number = strtol(p, endptr, 0);
-        unsigned digits = 0;
-
-        if (number > 0)
-        {
-            digits = count_digits(number);
-
-            if (number % 15 == 0)
-            {
-                p = *endptr - digits; // the beginning of number
-                buffer = str_replace(buffer, p, BIZZ_BUZZ, buffer_size, sizeof(BIZZ_BUZZ), digits);
-            } 
-            else if (number % 3 == 0)
-            {
-                p = *endptr - digits; // the beginning of number
-                buffer = str_replace(buffer, p, BIZZ,      buffer_size, sizeof(BIZZ),      digits);
-
-            }
-            else if (number % 5 == 0) 
-            {
-                p = *endptr - digits; // the beginning of number
-                buffer = str_replace(buffer, p, BUZZ,      buffer_size, sizeof(BUZZ),      digits);
-            }
-
-            p = buffer + buf_offset; // refreshing p pointer
-        }
-
-        strtol(p, endptr, 0); // refreshing endptr pointer
-
-        if (number > 0)       // if a number was parsed
-        { 
-            p = *endptr;
-            buf_offset = p - buffer;
-        }
-        else 
-        {
-            p++;
-            buf_offset++; 
-        }
+        n_write = sprintf(out_start, "%s", BIZZ_BUZZ);
+        if (n_write != strlen(BIZZ_BUZZ))
+            ASSERT_OK(WRITE_SIZE)
+    }
+    else if (number % 3 == 0)
+    {
+        n_write = sprintf(out_start, "%s", BIZZ);
+        if (n_write != strlen(BIZZ))
+            ASSERT_OK(WRITE_SIZE)
+    }
+    else if (number % 5 == 0)
+    {
+        n_write = sprintf(out_start, "%s", BUZZ);
+        if (n_write != strlen(BUZZ))
+            ASSERT_OK(WRITE_SIZE)
+    }
+    else
+    {
+        strncpy(out_start, in_start, n_digits);
+        n_write = n_digits;
     }
 
-    free(endptr);
-
-    return buffer;
-}
-
-char* str_replace(char* buffer, char* pos, const char* str, unsigned* buf_size, unsigned insert_sz, unsigned offset)
-{
-    assert(buffer);
-    assert(pos);
-    assert(str);
-    assert(buf_size);
-
-    unsigned pos_offset = pos - buffer;      // the part of buffer that is to be saved (before)
-    char*    remaining  = pos + offset;      // the part of buffer that is to be appended after insertion
-    int      rem_len    = strlen(remaining);
-
-    // Copy remaining part
-    char* copy_remaining = (char*) calloc(rem_len + 1, sizeof(char));
-    if (copy_remaining == NULL)
-        ASSERT_OK(BAD_ALLOC)
-
-    strcpy(copy_remaining, remaining);
-    // End of copying
-
-    *buf_size += insert_sz + offset + 1;
-
-    int rem_size = strlen(copy_remaining);
-
-    char* new_buffer = realloc(buffer, *buf_size);
-    if (new_buffer== NULL)
-        ASSERT_OK(BAD_ALLOC);
-
-    strcpy(new_buffer + pos_offset, str);
-    strcat(new_buffer, copy_remaining);
-
-    free(copy_remaining);
-
-    return new_buffer;
-}
-
-unsigned count_digits(long number)
-{
-    unsigned count = 0;
-
-    while (number != 0)
-    {
-        number /= 10;
-        ++count;
-    }
-
-    return count;
+    *n_in_symbols  += n_digits;
+    *n_out_symbols += n_write;
 }

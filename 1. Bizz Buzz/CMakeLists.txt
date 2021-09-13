@@ -12,12 +12,13 @@ project ("BIZZ_BUZZ" LANGUAGES C)
 set(FILE_NAME "bizz")
 
 set(HEADERS
-        biz_errors.h
+        errors_vh.h
+        boz_handler.h
 )
 
 set(SOURCES
         main.c
-        biz_error.c
+        errors_vh.c
         biz_handler.c
 )
 
