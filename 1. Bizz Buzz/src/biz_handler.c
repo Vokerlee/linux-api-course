@@ -1,24 +1,20 @@
-#include "errors_vh.h"
 #include "biz_handler.h"
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
+const long BIZZ_NMB      = 3;
+const long BUZZ_NMB      = 5;
+const long BIZZ_BUZZ_NMB = 15;
 
-const char BIZZ[]      = "bizz";
-const char BUZZ[]      = "buzz";
-const char BIZZ_BUZZ[] = "bizz_buzz";
+const char BIZZ[]        = "bizz";
+const char BUZZ[]        = "buzz";
+const char BIZZ_BUZZ[]   = "bizz_buzz";
 
 const unsigned long BUFFER_SIZE = 4096;
 
 void biz_strings(int argc, char *argv[])
 {
     assert(argv);
+
+    ASSERT_OK(BAD_ALLOC)
 
 // Files opening
 
@@ -28,7 +24,7 @@ void biz_strings(int argc, char *argv[])
         ASSERT_OK(errno)
 
     errno = 0;
-    int file_descr_out = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+    int file_descr_out = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IRWXU);
     if (file_descr_out < 0)
         ASSERT_OK(errno)
 
@@ -112,9 +108,15 @@ void biz_strings(int argc, char *argv[])
     }
 
 // Files closing
+    int close_state = 0;
 
-    close(file_descr_in);
-    close(file_descr_out);
+    close_state = close(file_descr_in);
+    if (close_state == -1)
+        ASSERT_OK(errno)
+
+    close_state = close(file_descr_out);
+    if (close_state == -1)
+        ASSERT_OK(errno)
 }
 
 // Reads the number and prints it in a proper way with ptrs shifts
@@ -133,19 +135,19 @@ static void biz_handle_number(char *in_start, char *out_start, int *n_in_symbols
     // Number writing
     int n_write = 0;
 
-    if (number % 15 == 0)
+    if (number % BIZZ_BUZZ_NMB == 0)
     {
         n_write = sprintf(out_start, "%s", BIZZ_BUZZ);
         if (n_write != strlen(BIZZ_BUZZ))
             ASSERT_OK(WRITE_SIZE)
     }
-    else if (number % 3 == 0)
+    else if (number % BIZZ_NMB == 0)
     {
         n_write = sprintf(out_start, "%s", BIZZ);
         if (n_write != strlen(BIZZ))
             ASSERT_OK(WRITE_SIZE)
     }
-    else if (number % 5 == 0)
+    else if (number % BUZZ_NMB == 0)
     {
         n_write = sprintf(out_start, "%s", BUZZ);
         if (n_write != strlen(BUZZ))

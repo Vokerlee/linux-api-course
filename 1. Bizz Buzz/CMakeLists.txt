@@ -12,14 +12,15 @@ project ("BIZZ_BUZZ" LANGUAGES C)
 set(FILE_NAME "bizz")
 
 set(HEADERS
-        errors_vh.h
-        boz_handler.h
+        src/biz_err.h
+        src/biz_handler.h
 )
 
 set(SOURCES
-        main.c
-        errors_vh.c
-        biz_handler.c
+        src/main.c
+        src/biz_err.c
+        src/sys_err.c
+        src/biz_handler.c
 )
 
 # EXECUTABLE FILE
