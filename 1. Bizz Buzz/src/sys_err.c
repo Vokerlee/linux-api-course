@@ -1,7 +1,7 @@
 #include "../include/sys_err.h"
 #include "../include/ename.h"
 
-static const int ERR_BUFF_SIZE = 4096;                                              
+static const int ERR_BUFF_SIZE = 0x1000;                                              
 
 static void output_error(Boolean use_err, int err, Boolean flush_stdout, const char *format, va_list ap)
 {

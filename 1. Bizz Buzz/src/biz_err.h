@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef ASSERT_OK
-#define ASSERT_OK(errnum)                                                                  \
+#ifndef ERR_CHECK
+#define ERR_CHECK(condition, errnum)                                                       \
+    if (condition)                                                                         \
     {                                                                                      \
         fprintf(stderr, "ERROR AT LINE %d, FUNCTION %s:\n\t", __LINE__, __FUNCTION__);     \
         if (errnum < 0)                                                                    \

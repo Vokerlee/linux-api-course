@@ -1,11 +1,13 @@
 #ifndef BIZ_HANDLER_H
 #define BIZ_HANDLER_H
 
+#define _FILE_OFFSET_BITS 64
+
 #include "../include/sys_err.h"
 #include "biz_err.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
