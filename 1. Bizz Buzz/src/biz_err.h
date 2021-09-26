@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #ifndef ERR_CHECK
 #define ERR_CHECK(condition, errnum)                                                       \
@@ -14,6 +15,8 @@
             error_msg_vh(errnum);                                                          \
         else                                                                               \
             error_msg("");                                                                 \
+                                                                                           \
+        exit(EXIT_FAILURE);                                                                \
     }  
 #endif
 

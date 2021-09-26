@@ -61,19 +61,28 @@ void biz_strings(int argc, char *argv[])
         while (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
         {
             // Writing all non-number symbols to out-buffer
-            while (isdigit(buffer_in[n_in_symbols]) == 0 && n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
+            while (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
             {
                 buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
                 n_out_symbols++;
                 n_in_symbols++;
+
+                if (isspace(buffer_in[n_in_symbols]) && (isdigit(buffer_in[n_in_symbols + 1]) || buffer_in[n_in_symbols + 1] == '-'))
+                {
+                    buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
+                    n_out_symbols++;
+                    n_in_symbols++;
+
+                    break;
+                }
             }
 
-            //printf("%d %d\n", n_in_symbols, n_out_symbols);
+            printf("%d %d\n", n_in_symbols, n_out_symbols);
 
             if (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
                 biz_handle_number(&buffer_in[n_in_symbols], &buffer_out[n_out_symbols], &n_in_symbols, &n_out_symbols);
 
-            //printf("%d %d %d %d\n", n_in_symbols, n_out_symbols, n_read_max, n_write_max);
+            printf("%d %d %d %d\n", n_in_symbols, n_out_symbols, n_read_max, n_write_max);
         }
 
         // Writing out-buffer to file
@@ -110,35 +119,49 @@ static void biz_handle_number(char *in_start, char *out_start, int *n_in_symbols
     char *num_start = in_start;
     char *num_end   = NULL;
 
+    errno = 0;
     long number = strtol(num_start, &num_end, 0);
-    ERR_CHECK(errno == ERANGE, errno)
+    int errno_state = errno;
 
     long n_digits = num_end - num_start;
 
     // Number writing
-    int n_write = 0;
+    
 
-    if (number % BIZZ_BUZZ_NMB == 0)
+    if (isspace(*num_end) == 0 || errno_state == ERANGE)
     {
-        n_write = sprintf(out_start, "%s", BIZZ_BUZZ);
-        ERR_CHECK(n_write != strlen(BIZZ_BUZZ), WRITE_SIZE)
-    }
-    else if (number % BIZZ_NMB == 0)
-    {
-        n_write = sprintf(out_start, "%s", BIZZ);
-        ERR_CHECK(n_write != strlen(BIZZ), WRITE_SIZE)
-    }
-    else if (number % BUZZ_NMB == 0)
-    {
-        n_write = sprintf(out_start, "%s", BUZZ);
-        ERR_CHECK(n_write != strlen(BUZZ), WRITE_SIZE)
+        strncpy(out_start, in_start, n_digits);
+
+        *n_in_symbols  += n_digits;
+        *n_out_symbols += n_digits;
     }
     else
     {
-        strncpy(out_start, in_start, n_digits);
-        n_write = n_digits;
+        int n_write = 0;
+
+        if (number % BIZZ_BUZZ_NMB == 0)
+        {
+            n_write = sprintf(out_start, "%s", BIZZ_BUZZ);
+            ERR_CHECK(n_write != strlen(BIZZ_BUZZ), WRITE_SIZE)
+        }
+        else if (number % BIZZ_NMB == 0)
+        {
+            n_write = sprintf(out_start, "%s", BIZZ);
+            ERR_CHECK(n_write != strlen(BIZZ), WRITE_SIZE)
+        }
+        else if (number % BUZZ_NMB == 0)
+        {
+            n_write = sprintf(out_start, "%s", BUZZ);
+            ERR_CHECK(n_write != strlen(BUZZ), WRITE_SIZE)
+        }
+        else
+        {
+            strncpy(out_start, in_start, n_digits);
+            n_write = n_digits;
+        }
+
+        *n_in_symbols  += n_digits;
+        *n_out_symbols += n_write;
     }
 
-    *n_in_symbols  += n_digits;
-    *n_out_symbols += n_write;
 }
