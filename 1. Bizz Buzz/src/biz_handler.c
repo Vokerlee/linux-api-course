@@ -63,10 +63,6 @@ void biz_strings(int argc, char *argv[])
             // Writing all non-number symbols to out-buffer
             while (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
             {
-                buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
-                n_out_symbols++;
-                n_in_symbols++;
-
                 if (isspace(buffer_in[n_in_symbols]) && (isdigit(buffer_in[n_in_symbols + 1]) || buffer_in[n_in_symbols + 1] == '-'))
                 {
                     buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
@@ -75,14 +71,18 @@ void biz_strings(int argc, char *argv[])
 
                     break;
                 }
+
+                buffer_out[n_out_symbols] = buffer_in[n_in_symbols];
+                n_out_symbols++;
+                n_in_symbols++;
             }
 
-            printf("%d %d\n", n_in_symbols, n_out_symbols);
+            //printf("%d %d\n", n_in_symbols, n_out_symbols);
 
             if (n_in_symbols < n_read_max &&  n_out_symbols < n_write_max)
                 biz_handle_number(&buffer_in[n_in_symbols], &buffer_out[n_out_symbols], &n_in_symbols, &n_out_symbols);
 
-            printf("%d %d %d %d\n", n_in_symbols, n_out_symbols, n_read_max, n_write_max);
+            //printf("%d %d %d %d\n", n_in_symbols, n_out_symbols, n_read_max, n_write_max);
         }
 
         // Writing out-buffer to file
