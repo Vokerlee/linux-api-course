@@ -95,7 +95,7 @@ static size_t get_cmds_amount(const char *buffer)
 
     while ((next = strchr(token_ptr, '|')) != NULL)
     {
-        ++n_cmds;
+        n_cmds++;
         token_ptr = next;
         token_ptr++;
     }
