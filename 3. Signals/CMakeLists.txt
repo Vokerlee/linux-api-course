@@ -10,7 +10,7 @@ project ("Signals" LANGUAGES C)
 
 # EXECUTABLE FILES PROPERTIES
 set(TRANSMITTER_NAME "transmitter")
-set(RECIEVER_NAME    "reciever")
+set(RECIEVER_NAME    "receiver")
 
 set(ERRORS_SRC
         error_src/sys_err.c

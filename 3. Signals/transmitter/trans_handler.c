@@ -32,6 +32,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     int kill_state = kill(reciever_pid, SIGUSR1); // send signal for the receiver to get data from fifo (see further)
     ERR_CHECK(kill_state == -1, errno)
 
+    unlink("test_fifo");
     errno = 0;
     int fifo_state = mkfifo("test_fifo", 0666);
     ERR_CHECK(fifo_state == -1, errno)

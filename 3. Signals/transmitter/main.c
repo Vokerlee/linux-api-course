@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
     ERR_CHECK(input_state != 0, input_state)
 
     char *endptr = NULL;
-    pid_t receiver_pid = strtol(argv[2], endptr, 0);
+    pid_t receiver_pid = strtol(argv[2], &endptr, 0);
     ERR_CHECK(receiver_pid == -1, errno)
 
     transmit(argv[1], receiver_pid);
