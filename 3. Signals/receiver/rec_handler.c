@@ -7,15 +7,15 @@ const size_t FILENAME_SIZE = 0x50;
 
 void usr1_handler(int signal)
 {
-    errno = 0;
-    int fifo_fd = open("test_fifo", O_RDONLY);
-    ERR_CHECK(fifo_fd == -1, errno)
-
     char* data = (char*) calloc(BUFFER_SIZE + 1, sizeof(char));
     ERR_CHECK(data == NULL, BAD_ALLOC)
 
     errno = 0;
-    int n_read = read(fifo_fd, data, BUFFER_SIZE);
+    int fifo_fd = open("test_fifo", O_RDONLY); // open for reading, so transmitter unblocks and can write now
+    ERR_CHECK(fifo_fd == -1, errno)
+
+    errno = 0;
+    int n_read = read(fifo_fd, data, BUFFER_SIZE); // if something is already is written to fifo, read it, or block and wait for it
     ERR_CHECK(n_read == -1, errno)
 
     // here any actions can be done with received data, e. g.:
@@ -38,5 +38,6 @@ void usr1_handler(int signal)
     errno = 0;
     close_state = close(output_fd);
     ERR_CHECK(close_state == -1, errno)
-}
 
+    printf("Message is received!\n");
+}
