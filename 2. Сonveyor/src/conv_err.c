@@ -23,6 +23,6 @@ void error_msg_vh(int errnum)
             exit(BAD_ALLOC);
         default:                                                     
             fprintf(stderr, "ERROR: UNKNOWN\n");                                       
-            exit(0);                                                    
+            exit(EXIT_FAILURE);                                                    
     }
 }
