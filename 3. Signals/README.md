@@ -14,6 +14,6 @@ cd build
 cmake ..
 ```
 
-## HOw to use
+## How to use
 
 In development...

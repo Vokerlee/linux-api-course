@@ -29,8 +29,8 @@ set(REC_SRC
 )    
 
 # EXECUTABLE FILES
-add_executable(${TRANSMITTER_NAME} ${TRANS_SRC})
-add_executable(${RECIEVER_NAME}    ${REC_SRC})
+add_executable(${TRANSMITTER_NAME} ${TRANS_SRC} ${ERRORS_SRC})
+add_executable(${RECIEVER_NAME}    ${REC_SRC}   ${ERRORS_SRC})
 
 target_include_directories(${TRANSMITTER_NAME} PRIVATE error_src)
 target_include_directories(${RECIEVER_NAME}    PRIVATE error_src)

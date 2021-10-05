@@ -180,6 +180,7 @@ static void execute_cmds(const struct cmds_t *commands)
     int *fd = (int *) calloc((commands->n_cmds - 1) * 2, sizeof(int));
     ERR_CHECK(fd == NULL, BAD_ALLOC)
 
+    errno = 0;
     for (size_t i = 0; i < commands->n_cmds - 1; i++)
         ERR_CHECK(pipe(fd + 2 * i) < 0, errno) // 2 * (n_cmds - 1) descriptors, (n_cmds - 1) pipes
 
@@ -189,7 +190,9 @@ static void execute_cmds(const struct cmds_t *commands)
 
     for (size_t i = 0; i < commands->n_cmds; i++)
     {
+        errno = 0;
         pid = fork();
+        ERR_CHECK(pid == -1, errno)
 
         if (pid == 0) // child
         {
@@ -199,7 +202,12 @@ static void execute_cmds(const struct cmds_t *commands)
                 ERR_CHECK(dup2(fd[2 * i + 1], STDOUT_FILENO) < 0, errno)    
 
             for (size_t j = 0; j < 2 * (commands->n_cmds - 1); j++)
-               close(fd[j]);
+            {
+                errno == 0;
+                int close_state = close(fd[j]);
+                ERR_CHECK(close_state == -1, errno)
+            }
+               
 
             execute_cmd(commands->cmds[i]);
         }
@@ -215,6 +223,7 @@ static void execute_cmds(const struct cmds_t *commands)
 
 void execute_cmd(const struct cmd_t command)
 {
+    errno = 0;
     execvp(command.argv[0], command.argv);
     ERR_CHECK(1, errno)
 }
