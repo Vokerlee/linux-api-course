@@ -32,14 +32,14 @@ set(REC_SRC
 add_executable(${TRANSMITTER_NAME} ${TRANS_SRC} ${ERRORS_SRC})
 add_executable(${RECIEVER_NAME}    ${REC_SRC}   ${ERRORS_SRC})
 
+# ERRORS FUNCTIiONS (GENERAL PURPOSE)
 target_include_directories(${TRANSMITTER_NAME} PRIVATE error_src)
 target_include_directories(${RECIEVER_NAME}    PRIVATE error_src)
 
 
 #########################################################################
 
-# ASSEMBLY OPTIONS
-
+# ASSEMBLY OPTIONS (FOR BOTH FILES)
 add_compile_options(
     -Werror
 

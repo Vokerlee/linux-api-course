@@ -39,5 +39,5 @@ void usr1_handler(int signal)
     close_state = close(output_fd);
     ERR_CHECK(close_state == -1, errno)
 
-    printf("Message is received!\n");
+    printf("Message has been received!\n");    
 }

@@ -29,7 +29,7 @@ void error_msg_vh(int errnum)
             fprintf(stderr, "ERROR: Allocation memory error\n");                     
             exit(BAD_ALLOC);
         default:                                                     
-            fprintf(stderr, "ERROR: UNKNOWN\n");                                       
+            fprintf(stderr, "ERROR: ?UNKNOWN?\n");                                       
             exit(EXIT_FAILURE);                                                    
     }
 }

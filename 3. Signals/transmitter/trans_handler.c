@@ -4,9 +4,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
 {
     assert(file_name);
 
-    // FILE OPENING
-    size_t filename_size = strlen(file_name);
-
+// FILE OPENING
     errno = 0;
     int fd = open(file_name, O_RDONLY);
     ERR_CHECK(fd == -1, errno)
@@ -18,7 +16,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
 
     size_t data_size = file_stat.st_size;
 
-    // BUFFER CREATING & FILE READING
+// BUFFER CREATING & FILE READING
     char* buf = (char*) calloc(data_size, sizeof(char));
     ERR_CHECK(buf == NULL, BAD_ALLOC)
 
@@ -31,7 +29,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     int close_state = close(fd);
     ERR_CHECK(close_state == -1, errno)
 
-    // TRANSMIITING
+// TRANSMIITING (FIFO + KILL)
     unlink("test_fifo");
     errno = 0;
     int fifo_state = mkfifo("test_fifo", 0666);
@@ -45,7 +43,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     int fifo_fd = open("test_fifo", O_WRONLY); // block and wait for receiver to open fifo for reading
     ERR_CHECK(fifo_fd == -1, errno)
 
-    // ClOSING AND WRITING
+// ClOSING AND WRITING
     errno = 0;
     int n_write = write(fifo_fd, buf, data_size);
     ERR_CHECK(n_write == -1, errno)

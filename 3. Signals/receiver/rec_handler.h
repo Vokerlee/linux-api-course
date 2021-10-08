@@ -15,6 +15,10 @@
 extern const size_t BUFFER_SIZE;
 extern const size_t FILENAME_SIZE;
 
+#define SLEEP        \
+    while (1)        \
+        sleep(100); 
+
 void usr1_handler(int signal);
 
 #endif // !REC_HANDLER_H_
