@@ -1,7 +1,13 @@
 #include "conv_handler.h"
 
-void conv_handler(const int fd_input)
+void conv_handler(const char *filename)
 {
+    assert(filename);
+
+    errno = 0;
+    int fd_input = open(filename, O_RDONLY);
+    ERR_CHECK(fd_input == -1, errno)
+
     // BUFFER CREATING
     struct stat input_stat = {0};
 
@@ -16,6 +22,10 @@ void conv_handler(const int fd_input)
     int n_read = read(fd_input, buf, input_size);
     ERR_CHECK(n_read == -1, errno)
     ERR_CHECK(n_read != input_size, READ_SIZE)
+
+    errno = 0;
+    int close_err = close(fd_input);
+    ERR_CHECK(close_err == -1, errno)
 
     // COMMANDS PARSING
     struct cmds_t commands = {0};
@@ -103,11 +113,11 @@ static size_t get_cmds_amount(const char *buffer)
     return n_cmds;
 }
 
-static char *skip_spaces(const char* buf)
+static char *skip_spaces(char* buf)
 {
     assert(buf);
 
-    const char* ptr = buf;
+    char* ptr = buf;
 
     while (isspace(*ptr))
         ptr++;
@@ -115,13 +125,13 @@ static char *skip_spaces(const char* buf)
     return ptr;
 }
 
-static size_t get_cmds_argc(const char *cmd)
+static size_t get_cmds_argc(char *cmd)
 {
     assert(cmd);
 
     size_t argc = 1;
     char*  next = NULL;
-    const char* token_ptr = cmd;
+    char* token_ptr = cmd;
 
     while ((next = strchr(token_ptr, ' ')) != NULL)
     {
@@ -137,7 +147,7 @@ static size_t get_cmds_argc(const char *cmd)
     return argc;
 }
 
-static char **get_cmds_argv(const char *cmd, const size_t argc)
+static char **get_cmds_argv(char *cmd, const size_t argc)
 {
     assert(cmd);
 
@@ -146,7 +156,7 @@ static char **get_cmds_argv(const char *cmd, const size_t argc)
 
     argv[argc] = NULL;
 
-    const char* arg_ptr = cmd;
+    char* arg_ptr = cmd;
     char* next = NULL;
     size_t i = 0;
 
@@ -176,19 +186,21 @@ static void execute_cmds(const struct cmds_t *commands)
 {
     assert(commands);
 
+    size_t n_cmds = commands->n_cmds;
+
     // OPENING PIPES
-    int *fd = (int *) calloc((commands->n_cmds - 1) * 2, sizeof(int));
+    int *fd = (int *) calloc((n_cmds - 1) * 2, sizeof(int));
     ERR_CHECK(fd == NULL, BAD_ALLOC)
 
     errno = 0;
-    for (size_t i = 0; i < commands->n_cmds - 1; i++)
+    for (size_t i = 0; i < n_cmds - 1; i++)
         ERR_CHECK(pipe(fd + 2 * i) < 0, errno) // 2 * (n_cmds - 1) descriptors, (n_cmds - 1) pipes
 
     // CREATING CHILDS
     int status = 0;
     pid_t pid  = 0;
 
-    for (size_t i = 0; i < commands->n_cmds; i++)
+    for (size_t i = 0; i < n_cmds; i++)
     {
         errno = 0;
         pid = fork();
@@ -198,26 +210,28 @@ static void execute_cmds(const struct cmds_t *commands)
         {
             if (i != 0)
                 ERR_CHECK(dup2(fd[2 * i - 2], STDIN_FILENO)  < 0, errno)
-            if (i != commands->n_cmds - 1)
+            if (i != n_cmds - 1)
                 ERR_CHECK(dup2(fd[2 * i + 1], STDOUT_FILENO) < 0, errno)    
 
-            for (size_t j = 0; j < 2 * (commands->n_cmds - 1); j++)
+            for (size_t j = 0; j < 2 * (n_cmds - 1); j++)
             {
-                errno == 0;
+                errno = 0;
                 int close_state = close(fd[j]);
                 ERR_CHECK(close_state == -1, errno)
             }
                
-
             execute_cmd(commands->cmds[i]);
         }
     }
 
+    errno = 0;
+    pid_t id = wait(&status);
+    ERR_CHECK(id == -1, errno)
+
     // CLEANING MEMORY OF PARSING (for parent process)
     free(fd);
 
-    size_t i = 0;
-    for (i = 0; i < commands->n_cmds; i++)
+    for (size_t i = 0; i < n_cmds; i++)
         free(commands->cmds[i].argv);
 }
 
