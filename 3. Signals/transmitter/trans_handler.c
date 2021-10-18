@@ -80,16 +80,16 @@ void transmit_data(const char *data, const size_t data_size, const pid_t recieve
 {
     int error_state = 0;
 
-    const int *int_data = (const int *) data;
-    const size_t int_data_size = data_size / sizeof(int);
+    const void **void_data = (const void **) data;
+    const size_t void_data_size = data_size / sizeof(void *);
     
     siginfo_t siginfo;
     sigval_t  value;
 
-    // All full blocks (4 bytes)
-    for (size_t i = 0; i < int_data_size; ++i)
+    // All full blocks (8 bytes)
+    for (size_t i = 0; i < void_data_size; ++i)
     {
-        value.sival_int = int_data[i];
+        value.sival_ptr = void_data[i];
 
         error_state = sigqueue(reciever_pid, SIGUSR1, value);
         ERR_CHECK(error_state == -1, errno);
@@ -98,10 +98,10 @@ void transmit_data(const char *data, const size_t data_size, const pid_t recieve
         ERR_CHECK(error_state == -1, errno);
     }
 
-    // Remainder (less than 4 bytes)
-    for (size_t i = 0; i < data_size % sizeof(int); ++i)
+    // Remainder (less than 8 bytes)
+    for (size_t i = 0; i < data_size % sizeof(void *); ++i)
     {
-        value.sival_int = data[int_data_size * sizeof(int) + i];
+        value.sival_int = data[void_data_size * sizeof(void *) + i];
 
         error_state = sigqueue(reciever_pid, SIGUSR1, value);
         ERR_CHECK(error_state == -1, errno);

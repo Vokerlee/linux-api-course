@@ -27,7 +27,7 @@ size_t get_data_size(sigset_t waitset)
                 
             case SIGTERM:
             {
-                fprintf(stdout, "End of transmission.\n");
+                fprintf(stdout, "End of transmission\n");
                 exit(0);
             }
         }
@@ -43,14 +43,14 @@ size_t get_data_size(sigset_t waitset)
 
 void get_data(char *data, size_t data_size, sigset_t waitset)
 {
-    int *int_data = (int *) data;
-    const size_t int_data_size = data_size / sizeof(int);
+    const void **void_data = (const void **) data;
+    const size_t void_data_size = data_size / sizeof(void *);
 
     size_t counter = 0;
 
     siginfo_t siginfo;
 
-    for (size_t i = 0; i < int_data_size; ++i)
+    for (size_t i = 0; i < void_data_size; ++i)
     {
         int signal = sigwaitinfo(&waitset, &siginfo);
         ERR_CHECK(signal == -1, errno);
@@ -60,14 +60,14 @@ void get_data(char *data, size_t data_size, sigset_t waitset)
             case SIGUSR1:
             case SIGUSR2:
             {
-                int_data[i] = siginfo.si_value.sival_int;
+                void_data[i] = siginfo.si_value.sival_ptr;
                 counter++;
                 break;
             }
                 
             case SIGTERM:
             {
-                fprintf(stdout, "End of transmission.\n");
+                fprintf(stdout, "End of transmission\n");
                 exit(0);
             }
         }
@@ -75,7 +75,7 @@ void get_data(char *data, size_t data_size, sigset_t waitset)
         kill(siginfo.si_pid, SIGUSR1);
     }
 
-    for (size_t i = 0; i < data_size % sizeof(int); ++i)
+    for (size_t i = 0; i < data_size % sizeof(void *); ++i)
     {
         int signal = sigwaitinfo(&waitset, &siginfo);
         ERR_CHECK(signal == -1, errno);
@@ -85,7 +85,7 @@ void get_data(char *data, size_t data_size, sigset_t waitset)
             case SIGUSR1:
             case SIGUSR2:
             {
-                data[int_data_size * sizeof(int) + i] = siginfo.si_value.sival_int;
+                data[void_data_size * sizeof(void *) + i] = siginfo.si_value.sival_int;
                 counter++;
                 break;
             }
