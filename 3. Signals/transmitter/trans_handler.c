@@ -59,14 +59,12 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid, sigset_t wa
     int error_state = 0;
     
     siginfo_t siginfo;
+    sigval_t  value;
 
     for (size_t i = 0; i < sizeof(size_t); ++i)
     {
         size_t bit_mask = 0xFF << (BITS_PER_BYTE * i);
-        unsigned char byte = (bit_mask & data_size) >> (BITS_PER_BYTE * i);
-
-        sigval_t value = {0};
-        value.sival_int = byte;
+        value.sival_int = (bit_mask & data_size) >> (BITS_PER_BYTE * i);
 
         error_state = sigqueue(reciever_pid, SIGUSR1, value);
         ERR_CHECK(error_state == -1, errno);
@@ -76,11 +74,11 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid, sigset_t wa
     }
 }
 
-void transmit_data(const char *data, const size_t data_size, const pid_t reciever_pid, sigset_t waitset)
+void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid, sigset_t waitset)
 {
     int error_state = 0;
 
-    const void **void_data = (const void **) data;
+    void **void_data = (void **) data;
     const size_t void_data_size = data_size / sizeof(void *);
     
     siginfo_t siginfo;
@@ -98,10 +96,14 @@ void transmit_data(const char *data, const size_t data_size, const pid_t recieve
         ERR_CHECK(error_state == -1, errno);
     }
 
+    size_t remainder_size = data_size % sizeof(void *);
+    size_t passed_size    = void_data_size * sizeof(void *);
+    value.sival_ptr       = NULL;
+
     // Remainder (less than 8 bytes)
-    for (size_t i = 0; i < data_size % sizeof(void *); ++i)
+    for (size_t i = 0; i < remainder_size; ++i)
     {
-        value.sival_int = data[void_data_size * sizeof(void *) + i];
+        value.sival_int = data[passed_size + i];
 
         error_state = sigqueue(reciever_pid, SIGUSR1, value);
         ERR_CHECK(error_state == -1, errno);

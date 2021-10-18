@@ -43,7 +43,7 @@ size_t get_data_size(sigset_t waitset)
 
 void get_data(char *data, size_t data_size, sigset_t waitset)
 {
-    const void **void_data = (const void **) data;
+    void **void_data = (void **) data;
     const size_t void_data_size = data_size / sizeof(void *);
 
     size_t counter = 0;
@@ -75,7 +75,10 @@ void get_data(char *data, size_t data_size, sigset_t waitset)
         kill(siginfo.si_pid, SIGUSR1);
     }
 
-    for (size_t i = 0; i < data_size % sizeof(void *); ++i)
+    size_t remainder_size = data_size % sizeof(void *);
+    size_t passed_size    = void_data_size * sizeof(void *);
+
+    for (size_t i = 0; i < remainder_size; ++i)
     {
         int signal = sigwaitinfo(&waitset, &siginfo);
         ERR_CHECK(signal == -1, errno);
@@ -85,7 +88,7 @@ void get_data(char *data, size_t data_size, sigset_t waitset)
             case SIGUSR1:
             case SIGUSR2:
             {
-                data[void_data_size * sizeof(void *) + i] = siginfo.si_value.sival_int;
+                data[passed_size + i] = siginfo.si_value.sival_int;
                 counter++;
                 break;
             }
