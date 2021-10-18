@@ -1,57 +1,53 @@
 #include "rec_handler.h"
 
-extern char *file_name;
-
 int main(int argc, char *argv[])
 {
 // CHECKING FOR INPUT PARAMS' ERRORS
+
+    int error_state = 0;
+
     errno = 0;
     int input_state = error_input_vh(argc, argv);
-    ERR_CHECK(input_state != 0, input_state)
+    ERR_CHECK(input_state != 0, input_state);
+
+// OPEN FILE
+
+    errno = 0;
+    int fd = open(argv[1], O_WRONLY | O_CREAT, 0666);
+    ERR_CHECK(fd == -1, errno);
 
 // PRINT PID FOR CONVENIENCE
+
     printf("My pid = %d\n", getpid());
 
-// FILENAME STUFF
-    char* file = argv[1];
-    size_t fname_size = strlen(file);
-    assert(fname_size > 0);
+// SIGNALS SETTINGS
 
-    file_name = (char*) calloc(FILENAME_SIZE, sizeof(char));
-    ERR_CHECK(file_name == NULL, BAD_ALLOC)
+    sigset_t waitset;
 
-    strncpy(file_name, file, fname_size);
+    sigemptyset(&waitset);
+    sigaddset(&waitset, SIGUSR1);
+    sigaddset(&waitset, SIGUSR2);
+    sigaddset(&waitset, SIGTERM);
 
-// SIGNALS HANDLING SETTINGS
-    struct sigaction act = {0};
-    int    sig_err_state = 0;
+    error_state = sigprocmask(SIG_BLOCK, &waitset, NULL);
+    ERR_CHECK(error_state == -1, errno);
 
-    sigset_t set = {0}; 
+// SIGNALS HANDLING
 
-    sig_err_state = sigemptyset(&set); 
-    ERR_CHECK(sig_err_state == -1, errno)      
+    size_t data_size = get_data_size(waitset);
+    printf("Size = %zu\n", data_size);
+    
+    char *data = (char *) calloc(data_size, sizeof(char));
+    ERR_CHECK(data == NULL, BAD_ALLOC);
 
-    sig_err_state = sigaddset(&set, SIGUSR1); 
-    ERR_CHECK(sig_err_state == -1, errno)  
-    sig_err_state = sigaddset(&set, SIGUSR2);
-    ERR_CHECK(sig_err_state == -1, errno)  
-
-    act.sa_mask    = set;
-    act.sa_handler = usr1_handler;
+    get_data(data, data_size, waitset);
 
     errno = 0;
-    sig_err_state = sigaction(SIGUSR1, &act, 0);
-    ERR_CHECK(sig_err_state == -1, errno)
+    error_state = write(fd, data, data_size);
+    ERR_CHECK(error_state == -1, errno);
 
-    errno = 0;
-    sig_err_state = sigaction(SIGUSR2, &act, 0);
-    ERR_CHECK(sig_err_state == -1, errno)
-
-// WAIT AND RELAX
-
-    SLEEP // just exist and wait for some signals
-
-    free(file_name); // even if sleep is infinite!
+    free(data);
+    close(fd);
 
     return 0;
 }

@@ -239,5 +239,6 @@ void execute_cmd(const struct cmd_t command)
 {
     errno = 0;
     execvp(command.argv[0], command.argv);
+    fprintf(stderr, "Command \"%s\" cannot be launched\n", command.argv[0]);
     ERR_CHECK(1, errno)
 }

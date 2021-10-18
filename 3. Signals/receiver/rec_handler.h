@@ -12,13 +12,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-extern const size_t BUFFER_SIZE;
-extern const size_t FILENAME_SIZE;
 
-#define SLEEP        \
-    while (1)        \
-        sleep(100); 
+size_t get_data_size(sigset_t waitset);
 
-void usr1_handler(int signal);
+void get_data(char *data, size_t data_size, sigset_t waitset);
+
 
 #endif // !REC_HANDLER_H_

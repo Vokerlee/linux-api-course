@@ -9,17 +9,19 @@
 #include "sys_err.h"
 
 #ifndef ERR_CHECK
-#define ERR_CHECK(condition, errnum)                                                       \
-    if (condition)                                                                         \
-    {                                                                                      \
-        fprintf(stderr, "ERROR AT LINE %d, FUNCTION %s:\n\t", __LINE__, __FUNCTION__);     \
-        if (errnum < 0)                                                                    \
-            error_msg_vh(errnum);                                                          \
-        else                                                                               \
-            error_msg("");                                                                 \
-                                                                                           \
-        exit(EXIT_FAILURE);                                                                \
-    }  
+#define ERR_CHECK(condition, errnum)                                                           \
+    do {                                                                                       \
+        if (condition)                                                                         \
+        {                                                                                      \
+            fprintf(stderr, "ERROR AT LINE %d, FUNCTION %s:\n\t", __LINE__, __FUNCTION__);     \
+            if (errnum < 0)                                                                    \
+                error_msg_vh(errnum);                                                          \
+            else                                                                               \
+                error_msg("");                                                                 \
+                                                                                               \
+            exit(EXIT_FAILURE);                                                                \
+        }                                                                                      \
+    } while(0)                                                                                 
 #endif
 
 /*!-----------------------------------------------------------------------------

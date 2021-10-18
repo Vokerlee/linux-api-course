@@ -1,43 +1,102 @@
 #include "rec_handler.h"
 
-char *file_name = 0;
+const size_t BITS_PER_BYTE = 8;
 
-const size_t BUFFER_SIZE = 0x1000;
-const size_t FILENAME_SIZE = 0x50;
-
-void usr1_handler(int signal)
+size_t get_data_size(sigset_t waitset)
 {
-    char* data = (char*) calloc(BUFFER_SIZE + 1, sizeof(char));
-    ERR_CHECK(data == NULL, BAD_ALLOC)
+    size_t data_size = 0;
+    size_t counter   = 0;
 
-    errno = 0;
-    int fifo_fd = open("test_fifo", O_RDONLY); // open for reading, so transmitter unblocks and can write now
-    ERR_CHECK(fifo_fd == -1, errno)
+    siginfo_t siginfo;
 
-    errno = 0;
-    int n_read = read(fifo_fd, data, BUFFER_SIZE); // if something is already is written to fifo, read it, or block and wait for it
-    ERR_CHECK(n_read == -1, errno)
+    while (1)
+    {
+        int signal = sigwaitinfo(&waitset, &siginfo);
+        ERR_CHECK(signal == -1, errno);
 
-    // here any actions can be done with received data, e. g.:
+        switch(signal)
+        {
+            case SIGUSR1:
+            case SIGUSR2:
+            {
+                data_size = data_size | (siginfo.si_value.sival_int << (BITS_PER_BYTE * counter));
+                counter++;
+        
+                break;
+            }
+                
+            case SIGTERM:
+            {
+                fprintf(stdout, "End of transmission.\n");
+                exit(0);
+            }
+        }
 
-    errno = 0;
-    int output_fd = open("received_data", O_WRONLY | O_CREAT, 0666);
-    ERR_CHECK(output_fd == -1, errno)
+        kill(siginfo.si_pid, SIGUSR1);
 
-    errno = 0;
-    int n_out_write = write(output_fd, data, n_read);
-    ERR_CHECK(n_out_write == -1, errno)
-    ERR_CHECK(n_out_write != n_read, WRITE_SIZE)
+        if (counter >= sizeof(size_t))
+            return data_size;
+    }
 
-    int close_state = 0;
+    return data_size;
+}
 
-    errno = 0;
-    close_state = close(fifo_fd);
-    ERR_CHECK(close_state == -1, errno)
+void get_data(char *data, size_t data_size, sigset_t waitset)
+{
+    int *int_data = (int *) data;
+    const size_t int_data_size = data_size / sizeof(int);
 
-    errno = 0;
-    close_state = close(output_fd);
-    ERR_CHECK(close_state == -1, errno)
+    size_t counter = 0;
 
-    printf("Message has been received!\n");    
+    siginfo_t siginfo;
+
+    for (size_t i = 0; i < int_data_size; ++i)
+    {
+        int signal = sigwaitinfo(&waitset, &siginfo);
+        ERR_CHECK(signal == -1, errno);
+
+        switch(signal)
+        {
+            case SIGUSR1:
+            case SIGUSR2:
+            {
+                int_data[i] = siginfo.si_value.sival_int;
+                counter++;
+                break;
+            }
+                
+            case SIGTERM:
+            {
+                fprintf(stdout, "End of transmission.\n");
+                exit(0);
+            }
+        }
+
+        kill(siginfo.si_pid, SIGUSR1);
+    }
+
+    for (size_t i = 0; i < data_size % sizeof(int); ++i)
+    {
+        int signal = sigwaitinfo(&waitset, &siginfo);
+        ERR_CHECK(signal == -1, errno);
+
+        switch(signal)
+        {
+            case SIGUSR1:
+            case SIGUSR2:
+            {
+                data[int_data_size * sizeof(int) + i] = siginfo.si_value.sival_int;
+                counter++;
+                break;
+            }
+                
+            case SIGTERM:
+            {
+                fprintf(stdout, "End of transmission.\n");
+                exit(0);
+            }
+        }
+
+        kill(siginfo.si_pid, SIGUSR1);
+    }
 }
