@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <sys/time.h>
 
 void transmit(const char *file_name, const pid_t reciever_pid);
 

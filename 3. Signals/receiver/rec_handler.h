@@ -13,9 +13,9 @@
 #include <sys/stat.h>
 
 
-size_t get_data_size(sigset_t waitset);
+size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid);
 
-void get_data(char *data, size_t data_size, sigset_t waitset);
+size_t get_data(char *data, size_t data_size, sigset_t waitset, pid_t transmitter_pid);
 
 
 #endif // !REC_HANDLER_H_

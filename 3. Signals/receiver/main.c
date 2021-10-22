@@ -28,22 +28,27 @@ int main(int argc, char *argv[])
     sigaddset(&waitset, SIGUSR1);
     sigaddset(&waitset, SIGUSR2);
     sigaddset(&waitset, SIGTERM);
+    sigaddset(&waitset, SIGINT);
 
     error_state = sigprocmask(SIG_BLOCK, &waitset, NULL);
     ERR_CHECK(error_state == -1, errno);
 
 // SIGNALS HANDLING
 
-    size_t data_size = get_data_size(waitset);
-    printf("Size = %zu\n", data_size);
+    pid_t transmitter_pid = 0;
+
+    size_t data_size = get_data_size(waitset, &transmitter_pid);
+    printf("Transmitter pid = %d\n", transmitter_pid);
+    printf("Request size = %zu\n", data_size);
     
     char *data = (char *) calloc(data_size, sizeof(char));
     ERR_CHECK(data == NULL, BAD_ALLOC);
 
-    get_data(data, data_size, waitset);
+    size_t get_data_size = get_data(data, data_size, waitset, transmitter_pid);
+    printf("Read size = %zu\n", get_data_size);
 
     errno = 0;
-    error_state = write(fd, data, data_size);
+    error_state = write(fd, data, get_data_size);
     ERR_CHECK(error_state == -1, errno);
 
     free(data);
