@@ -12,14 +12,11 @@
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
+
 #include <sys/types.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
 #include <sys/sem.h>
-
-#define POISON 6666 
-
-#define SYNC 777
+#include <sys/shm.h>
 
 #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 /* union semun is defined by including <sys/sem.h> */
@@ -35,11 +32,12 @@ union semun
 };
 #endif
 
-
 typedef struct stack_t
 {
     int capacity;
     int size;
+
+    key_t stack_key;
 
     void** memory;
 } stack_t;
@@ -70,7 +68,8 @@ int pop(stack_t* stack, void** val);
 
 void print_stack(stack_t* stack, FILE* fout);
 
-/* Deletes manually segment */
+/* Deletes manually    int sval = 0;
+    int resop = 0; segment */
 void shmdel(int key, int size);
 //---------------------------------------------
 /* Additional tasks */
