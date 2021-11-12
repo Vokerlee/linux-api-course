@@ -1,5 +1,13 @@
 #include "rec_handler.h"
 
+pid_t TRANSMITTER_PID = 0;
+
+void atexit_action()
+{
+    union sigval value;
+    sigqueue(TRANSMITTER_PID, SIGRT_TERM, value);
+}
+
 int main(int argc, char *argv[])
 {
 // CHECKING FOR INPUT PARAMS' ERRORS
@@ -25,8 +33,8 @@ int main(int argc, char *argv[])
     sigset_t waitset;
 
     sigemptyset(&waitset);
-    sigaddset(&waitset, SIGUSR1);
-    sigaddset(&waitset, SIGUSR2);
+    sigaddset(&waitset, SIGRT_TRANSMIT);
+    sigaddset(&waitset, SIGRT_TERM);
     sigaddset(&waitset, SIGTERM);
     sigaddset(&waitset, SIGINT);
 
@@ -40,12 +48,16 @@ int main(int argc, char *argv[])
     size_t data_size = get_data_size(waitset, &transmitter_pid);
     printf("Transmitter pid = %d\n", transmitter_pid);
     printf("Request size = %zu\n", data_size);
+
+    errno = 0;
+    error_state = atexit(atexit_action);
+    ERR_CHECK(error_state == -1, errno);
     
     char *data = (char *) calloc(data_size, sizeof(char));
     ERR_CHECK(data == NULL, BAD_ALLOC);
 
     size_t get_data_size = get_data(data, data_size, waitset, transmitter_pid);
-    printf("Read size = %zu\n", get_data_size);
+    printf("Read size = %zu [%d%%]\n", get_data_size, (int)((double) get_data_size * 100/ data_size));
 
     errno = 0;
     error_state = write(fd, data, get_data_size);
@@ -54,5 +66,5 @@ int main(int argc, char *argv[])
     free(data);
     close(fd);
 
-    return 0;
+    exit(0);
 }

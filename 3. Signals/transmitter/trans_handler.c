@@ -2,6 +2,39 @@
 
 const size_t BITS_PER_BYTE = 8;
 
+const int SIGRT_TRANSMIT = 34;
+const int SIGRT_BUSY     = 38;
+const int SIGRT_TERM     = 40;
+
+pid_t RECEIVER_PID = 0;
+
+void busy_receiver_handler(int signal, siginfo_t *siginfo, void *ptr)
+{
+    if (siginfo->si_pid == RECEIVER_PID)
+    {
+        printf("Receiver[PID = %d] is already busy by receiving data\n", RECEIVER_PID);
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        printf("Signal %d was received by unknown process [PID = %d]\n", SIGRT_BUSY, siginfo->si_pid);
+    }
+}
+
+void term_receiver_handler(int signal, siginfo_t *siginfo, void *ptr)
+{
+    if (siginfo->si_pid == RECEIVER_PID)
+    {
+        printf("Receiver[PID = %d] has been terminated\n", RECEIVER_PID);
+        printf("Current process [PID = %d] is to be finished\n", getpid());
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        printf("Signal %d was received by unknown process [PID = %d]\n", SIGRT_TERM, siginfo->si_pid);
+    }
+}
+
 void transmit(const char *file_name, const pid_t reciever_pid)
 {
     assert(file_name);
@@ -33,20 +66,6 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     int close_state = close(fd);
     ERR_CHECK(close_state == -1, errno);
 
-// SIGNALS SETTINGS
-
-    sigset_t waitset;
-    sigemptyset(&waitset);
-
-    sigaddset(&waitset, SIGUSR1);
-    sigaddset(&waitset, SIGUSR2);
-    sigaddset(&waitset, SIGTERM);
-    sigaddset(&waitset, SIGINT);
-    
-    errno = 0;
-    int error_state = sigprocmask(SIG_BLOCK, &waitset, NULL);
-    ERR_CHECK(error_state == -1, errno);
-
 // CALCULATING TIME & TRANSMITTING
 
     struct timeval  tv_start = {0};
@@ -54,11 +73,12 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     int time_err = gettimeofday(&tv_start, &tm_start);
     ERR_CHECK(time_err == -1, errno);
 
-    transmit_size(data_size, reciever_pid, waitset);
+    transmit_size(data_size, reciever_pid);
+    transmit_data(data, data_size, reciever_pid);
 
-    transmit_data(data, data_size, reciever_pid, waitset);
-
-    kill(reciever_pid, SIGTERM);
+    // kill(reciever_pid, SIGTERM);
+    sigval_t value;
+    sigqueue(reciever_pid, SIGRT_TERM, value);
 
     struct timeval  tv_end = {0};
     struct timezone tm_end = {0};
@@ -76,7 +96,7 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     free(data);
 }
 
-void transmit_size(const size_t data_size, const pid_t reciever_pid, sigset_t waitset)
+void transmit_size(const size_t data_size, const pid_t reciever_pid)
 {
     int error_state = 0;
     int signal = 0;
@@ -91,35 +111,17 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid, sigset_t wa
         size_t bit_mask = 0xFF << (BITS_PER_BYTE * counter);
         value.sival_int = (bit_mask & data_size) >> (BITS_PER_BYTE * counter);
 
-        error_state = sigqueue(reciever_pid, SIGUSR1, value);
-        sleep(1);
+        error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
         ERR_CHECK(error_state == -1, errno);
-
-        while(1)
-        {
-            signal = sigwaitinfo(&waitset, &siginfo);
-            ERR_CHECK(error_state == -1, errno);
-
-            if (signal == SIGINT || signal == SIGTERM)
-            {
-                kill(reciever_pid, SIGTERM);
-                exit(0);
-            }
-            else 
-            {
-                if (siginfo.si_pid == reciever_pid)
-                    break;
-                else
-                    continue;
-            }
-        }
         
         counter++;
     }
 }
 
-void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid, sigset_t waitset)
+void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
 {
+    assert(data);
+
     int error_state = 0;
     int signal = 0;
 
@@ -136,27 +138,9 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid,
     {
         value.sival_ptr = void_data[counter];
 
-        error_state = sigqueue(reciever_pid, SIGUSR1, value);
+        errno = 0;
+        error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
         ERR_CHECK(error_state == -1, errno);
-
-        while(1)
-        {
-            signal = sigwaitinfo(&waitset, &siginfo);
-            ERR_CHECK(error_state == -1, errno);
-
-            if (signal == SIGINT || signal == SIGTERM)
-            {
-                kill(reciever_pid, SIGTERM);
-                exit(0);
-            }
-            else
-            {
-                if (siginfo.si_pid == reciever_pid)
-                    break;
-                else
-                    continue;
-            }
-        }
 
         counter++;
     }
@@ -171,27 +155,8 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid,
     {
         value.sival_int = data[passed_size + counter];
 
-        error_state = sigqueue(reciever_pid, SIGUSR1, value);
+        error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
         ERR_CHECK(error_state == -1, errno);
-
-        while(1)
-        {
-            signal = sigwaitinfo(&waitset, &siginfo);
-            ERR_CHECK(error_state == -1, errno);
-
-            if (signal == SIGINT || signal == SIGTERM)
-            {
-                kill(reciever_pid, SIGTERM);
-                exit(0);
-            }
-            else
-            {
-                if (siginfo.si_pid == reciever_pid)
-                    break;
-                else
-                    continue;
-            }
-        }
 
         counter++;
     }

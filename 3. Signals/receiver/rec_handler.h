@@ -12,6 +12,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+extern const int SIGRT_TRANSMIT;
+extern const int SIGRT_TERM;
+extern const int SIGRT_BUSY;
 
 size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid);
 
