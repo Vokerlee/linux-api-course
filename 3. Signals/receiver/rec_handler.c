@@ -1,6 +1,6 @@
 #include "rec_handler.h"
 
-extern pid_t TRANSMITTER_PID;
+extern sig_atomic_t TRANSMITTER_PID;
 
 const size_t BITS_PER_BYTE = 8;
 
@@ -8,7 +8,7 @@ const int SIGRT_TRANSMIT = 34;
 const int SIGRT_BUSY     = 38;
 const int SIGRT_TERM     = 40;
 
-const size_t MAX_PROCESSES_AMOUNT = 1000;
+const struct timespec MAX_DELAY = {0, 5 * 1e8}; // 0,5 seconds
 
 size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid)
 {
@@ -19,8 +19,6 @@ size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid)
 
     siginfo_t siginfo;
     int signal = 0;
-
-    struct timespec delay = {1, 0};
 
     signal = sigwaitinfo(&waitset, &siginfo);
     ERR_CHECK(signal == -1, errno);
@@ -50,7 +48,7 @@ size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid)
     while (1)
     {
         errno = 0;
-        signal = sigtimedwait(&waitset, &siginfo, &delay);
+        signal = sigtimedwait(&waitset, &siginfo, &MAX_DELAY);
         ERR_CHECK(signal == -1 && errno != EAGAIN, errno);
 
         if (signal == SIGINT || signal == SIGTERM || signal == SIGRT_TERM)
@@ -100,12 +98,10 @@ size_t get_data(char *data, size_t data_size, sigset_t waitset, pid_t transmitte
 
     siginfo_t siginfo;
 
-    struct timespec delay = {1, 0};
-
     while(counter < void_data_size)
     {
         errno = 0;
-        int signal = sigtimedwait(&waitset, &siginfo, &delay);
+        int signal = sigtimedwait(&waitset, &siginfo, &MAX_DELAY);
         ERR_CHECK(signal == -1 && errno != EAGAIN, errno);
 
         if (signal == SIGINT || signal == SIGTERM || signal == SIGRT_TERM)
@@ -144,7 +140,7 @@ size_t get_data(char *data, size_t data_size, sigset_t waitset, pid_t transmitte
     while (counter < remainder_size)
     {
         errno = 0;
-        int signal = sigtimedwait(&waitset, &siginfo, &delay);
+        int signal = sigtimedwait(&waitset, &siginfo, &MAX_DELAY);
         ERR_CHECK(signal == -1 && errno != EAGAIN, errno);
 
         if (signal == SIGINT || signal == SIGTERM || signal == SIGRT_TERM)

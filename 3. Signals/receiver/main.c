@@ -1,6 +1,6 @@
 #include "rec_handler.h"
 
-pid_t TRANSMITTER_PID = 0;
+sig_atomic_t TRANSMITTER_PID = 0;
 
 void atexit_action()
 {

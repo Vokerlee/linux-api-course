@@ -6,7 +6,9 @@ const int SIGRT_TRANSMIT = 34;
 const int SIGRT_BUSY     = 38;
 const int SIGRT_TERM     = 40;
 
-pid_t RECEIVER_PID = 0;
+sig_atomic_t RECEIVER_PID = 0;
+
+const useconds_t OVERFLOW_SIGNALS_DELAY = 200; // 0,2 seconds
 
 void busy_receiver_handler(int signal, siginfo_t *siginfo, void *ptr)
 {
@@ -76,9 +78,21 @@ void transmit(const char *file_name, const pid_t reciever_pid)
     transmit_size(data_size, reciever_pid);
     transmit_data(data, data_size, reciever_pid);
 
-    // kill(reciever_pid, SIGTERM);
-    sigval_t value;
-    sigqueue(reciever_pid, SIGRT_TERM, value);
+    while(1) // in case of real-time signals overflow
+    {
+        errno = 0;
+        sigval_t value;
+        int signal = sigqueue(reciever_pid, SIGRT_TERM, value);
+        ERR_CHECK(signal == -1 && errno != EAGAIN, errno);
+
+        if (errno == EAGAIN)
+        {
+            usleep(OVERFLOW_SIGNALS_DELAY);
+            continue;
+        }
+
+        break;
+    }
 
     struct timeval  tv_end = {0};
     struct timezone tm_end = {0};
@@ -90,8 +104,8 @@ void transmit(const char *file_name, const pid_t reciever_pid)
 
     double exec_time = (double) d_sec + (double) d_msec / 1e6;
 
-    printf("Transmission rate: %lg Kb/s\n",   data_size / exec_time / 1e3);
-    printf("Transmission rate: %lg bits/s\n", BITS_PER_BYTE * data_size / exec_time);
+    printf("[PID = %d] Transmission rate: %lg Kb/s\n",   getpid(), data_size / exec_time / 1e3);
+    printf("[PID = %d] Transmission rate: %lg bits/s\n", getpid(), BITS_PER_BYTE * data_size / exec_time);
 
     free(data);
 }
@@ -111,8 +125,15 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid)
         size_t bit_mask = 0xFF << (BITS_PER_BYTE * counter);
         value.sival_int = (bit_mask & data_size) >> (BITS_PER_BYTE * counter);
 
+        errno = 0;
         error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
-        ERR_CHECK(error_state == -1, errno);
+        ERR_CHECK(error_state == -1 && errno != EAGAIN, errno);
+
+        if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
+        {
+            usleep(OVERFLOW_SIGNALS_DELAY);
+            continue;
+        }
         
         counter++;
     }
@@ -140,7 +161,13 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
 
         errno = 0;
         error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
-        ERR_CHECK(error_state == -1, errno);
+        ERR_CHECK(error_state == -1 && errno != EAGAIN, errno);
+
+        if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
+        {
+            usleep(OVERFLOW_SIGNALS_DELAY);
+            continue;
+        }
 
         counter++;
     }
@@ -155,8 +182,15 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
     {
         value.sival_int = data[passed_size + counter];
 
+        errno = 0;
         error_state = sigqueue(reciever_pid, SIGRT_TRANSMIT, value);
-        ERR_CHECK(error_state == -1, errno);
+        ERR_CHECK(error_state == -1 && errno != EAGAIN, errno);
+
+        if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
+        {
+            usleep(OVERFLOW_SIGNALS_DELAY);
+            continue;
+        }
 
         counter++;
     }

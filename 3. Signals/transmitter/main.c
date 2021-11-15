@@ -1,6 +1,6 @@
 #include "trans_handler.h"
 
-extern pid_t RECEIVER_PID;
+extern sig_atomic_t RECEIVER_PID;
 
 int main(int argc, char *argv[])
 {
