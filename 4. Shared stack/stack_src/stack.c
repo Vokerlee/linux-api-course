@@ -403,7 +403,7 @@ int set_wait(int val, struct timespec* timeout)
             timeout->tv_nsec = 0;
             return val;
         default:
-            return -1;  
+            return -1;
     }
 }
 
