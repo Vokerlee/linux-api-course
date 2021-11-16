@@ -3,16 +3,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sysexits.h>
 #include <err.h>
 #include <errno.h>
+#include <syslog.h>
 
 extern enum copy_type COPY_TYPE;
+extern const char *DAEMON_NAME;
+
+const char *PID_FILE_NAME = "/var/run/backuperd.pid";
 
 #define MAX_PATH_SIZE 0x200
 
 int main(int argc, char** argv)
 {
+    // GETTING FILES' PATHS
+
     char src_path[MAX_PATH_SIZE] = {0};
     char dst_path[MAX_PATH_SIZE] = {0};
 
@@ -49,6 +57,8 @@ int main(int argc, char** argv)
     printf("Source      path: %s\n", src_path);
     printf("Destination path: %s\n", dst_path);
 
+    // CHECKING PATHS FOR ERRORS
+
     errno = 0;
     int src_valid = check_source_dir(src_path);
     if (src_valid == -1)
@@ -63,14 +73,30 @@ int main(int argc, char** argv)
         fprintf(stderr, "destination directory error: Coincides with the source directory\n");
         exit(EXIT_FAILURE);
     }
-    
-    // init_dest_dir(dst_path);
 
-    // printf("Starting program...\n");
+    // DAEMON STUFF
 
-    // init_daemon(src_path, dst_path, lnk_type);
+    printf("Launching daemon-backuper...\n");
 
-    // run_backup(src_path, dst_path);
+    int is_daemon = become_daemon(0);
+    if (is_daemon == -1)
+    {
+        fprintf(stderr, "becoming daemon error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    openlog(DAEMON_NAME, LOG_PID, LOG_USER | LOG_LOCAL0);
+
+    int pid_file_fd = create_unique_pid_file(argv[0], PID_FILE_NAME, 0);
+    if (pid_file_fd == -1)
+        exit(EXIT_FAILURE);
+
+    syslog(LOG_INFO, "Unique PID file \"%s\" created", PID_FILE_NAME);
+
+    launch_backuper(src_path, dst_path);
+
+    close(pid_file_fd);
+    closelog();
 
     return 0;
 }
