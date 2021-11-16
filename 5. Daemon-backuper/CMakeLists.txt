@@ -15,6 +15,7 @@ set(BACKUPER_SRC
         daemon_src/main.c
         daemon_src/daemon.c
         daemon_src/args_handling.c
+        daemon_src/backuper.c
 )    
 
 # EXECUTABLE FILES

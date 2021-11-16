@@ -1,5 +1,6 @@
-#include "daemon.h"
 #include "args_handling.h"
+#include "daemon.h"
+#include "backuper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,22 +79,29 @@ int main(int argc, char** argv)
 
     printf("Launching daemon-backuper...\n");
 
-    int is_daemon = become_daemon(0);
+    int is_daemon = become_daemon(0); // become daemon
     if (is_daemon == -1)
     {
         fprintf(stderr, "becoming daemon error\n");
         exit(EXIT_FAILURE);
     }
 
-    openlog(DAEMON_NAME, LOG_PID, LOG_USER | LOG_LOCAL0);
+    openlog(DAEMON_NAME, LOG_PID, LOG_USER | LOG_LOCAL0); // open logs
 
-    int pid_file_fd = create_unique_pid_file(argv[0], PID_FILE_NAME, 0);
+    int pid_file_fd = create_unique_pid_file(argv[0], PID_FILE_NAME, 0); // check if there is already existing daemon
     if (pid_file_fd == -1)
         exit(EXIT_FAILURE);
 
     syslog(LOG_INFO, "Unique PID file \"%s\" created", PID_FILE_NAME);
 
-    launch_backuper(src_path, dst_path);
+    sigset_t waitset;
+    int signals_error = set_signals(&waitset); // set signals handlers for communication with user
+    if (signals_error == -1)
+        exit(EXIT_FAILURE);
+
+    launch_backuper(src_path, dst_path, waitset);
+
+    syslog(LOG_INFO, "Successful termination");
 
     close(pid_file_fd);
     closelog();

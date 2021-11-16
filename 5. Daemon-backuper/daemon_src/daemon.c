@@ -1,18 +1,5 @@
 #include "daemon.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sysexits.h>
-#include <err.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <syslog.h>
-#include <assert.h>
-#include <string.h>
-
+#include "backuper.h"
 
 #define BUF_SIZE 100
 
@@ -175,3 +162,27 @@ int set_lock(int fd, int type, int whence, int start, int len)
 {
     return lock_ctl(fd, F_SETLK, type, whence, start, len);
 }
+
+int set_signals(sigset_t *waitset)
+{
+    assert(waitset);
+
+    sigemptyset(waitset);
+    sigaddset(waitset, SIGALRM);
+    sigaddset(waitset, SIGUSR1);
+    sigaddset(waitset, SIGUSR2);
+    sigaddset(waitset, SIGINT);
+    sigaddset(waitset, SIGTERM);
+    sigaddset(waitset, SIGQUIT);
+    
+    int error_state = sigprocmask(SIG_BLOCK, waitset, NULL);
+    if (error_state == -1)
+    {
+        syslog(LOG_ERR, "Error while setting signals handlers");
+        return -1;
+    }
+
+    return 0;
+}
+
+
