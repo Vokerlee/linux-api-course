@@ -50,7 +50,7 @@ int check_arguments(int argc, char** argv)
             return UNKNOWN_ARG;
 
         if (shallow_copy == 0)
-            COPY_TYPE = SHALLOW_COPY; 
+            COPY_TYPE = SHALLOW_COPY;
         else
             COPY_TYPE = DEEP_COPY; 
     }

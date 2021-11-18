@@ -6,7 +6,6 @@
 enum copy_type COPY_TYPE = SHALLOW_COPY;
 const char *DAEMON_NAME = "backuperd";
 
-
 int become_daemon(int flags)
 {
     int maxfd = 0;
