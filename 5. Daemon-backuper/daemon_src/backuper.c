@@ -7,11 +7,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <utime.h>
 
 extern enum copy_type COPY_TYPE;
 extern const char *DAEMON_NAME;
 
-unsigned int BACKUP_PERIOD = 90; // in seconds
+unsigned int BACKUP_PERIOD = 40; // in seconds
 
 void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
 {
@@ -45,8 +46,11 @@ void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
                 return;
 
             case SIGUSR1:
+                BACKUP_PERIOD = siginfo.si_value.sival_int;
+                syslog(LOG_INFO, "New period is to be set: %u seconds", BACKUP_PERIOD);
+                break;
             case SIGUSR2:
-                syslog(LOG_INFO, "Backuper gets SIGUSR");
+                syslog(LOG_INFO, "Backuper gets SIGUSR2");
                 break;
 
             default:
@@ -119,10 +123,11 @@ int copy_file(const char src_path[], const char dst_path[], enum copy_type copy_
 
 int backup(const char src_path[], const char dst_path[])
 {
-    syslog(LOG_INFO, "Back up of \"%s\" to \"%s\" begins right now", src_path, dst_path);
+    syslog(LOG_INFO, "\nBack up of \"%s\" to \"%s\" begins right now:", src_path, dst_path);
 
-    char dst_name[MAX_PATH_SIZE] = {0}; // buffer
-    char src_name[MAX_PATH_SIZE] = {0}; // buffer
+    char dst_name[MAX_PATH_SIZE]      = {0}; // buffer
+    char src_name[MAX_PATH_SIZE]      = {0}; // buffer
+    char src_real_path[MAX_PATH_SIZE] = {0}; // buffer
 
     int error_state = 0;
 
@@ -137,12 +142,23 @@ int backup(const char src_path[], const char dst_path[])
         return -1;
     }
 
-    if (S_ISDIR(src_info.st_mode))
+    if (S_ISDIR(src_info.st_mode) || (S_ISLNK(src_info.st_mode) && COPY_TYPE == DEEP_COPY))
     {
-        DIR *src_dir = opendir(src_path);
+        if (S_ISLNK(src_info.st_mode))
+        {
+            error_state = readlink(src_path, src_real_path, MAX_PATH_SIZE);
+            {
+                syslog(LOG_ERR, "Error while using readlink() for \"%s\": %s", src_path, strerror(errno));
+                return -1;
+            }
+        }
+        else
+            strcpy(src_real_path, src_path);
+
+        DIR *src_dir = opendir(src_real_path);
         if (src_dir == NULL)
         {
-            syslog(LOG_ERR, "Error while using opendir() for \"%s\" in backup()", src_path);
+            syslog(LOG_ERR, "Error while using opendir() for \"%s\" in backup()", src_real_path);
             return -1;
         }
 
@@ -154,7 +170,7 @@ int backup(const char src_path[], const char dst_path[])
             if (strcmp(src_entry->d_name, "..") == 0)
                 continue;
 
-            snprintf(src_name, sizeof(src_name), "%s/%s", src_path, src_entry->d_name);
+            snprintf(src_name, sizeof(src_name), "%s/%s", src_real_path, src_entry->d_name);
             snprintf(dst_name, sizeof(dst_name), "%s/%s", dst_path, src_entry->d_name);
 
             if (lookup_file(src_entry->d_name, dst_path, NAME))
@@ -164,30 +180,45 @@ int backup(const char src_path[], const char dst_path[])
                 error_state = stat(dst_name, &dst_info);
                 if (error_state == -1)
                 {
-                    syslog(LOG_ERR, "Error while using stat() for \"%s\"", dst_path);
+                    syslog(LOG_ERR, "Error while using stat() for \"%s\"", dst_name);
                     return -1;
                 }
 
                 error_state = stat(src_name, &src_info);
                 if (error_state == -1)
                 {
-                    syslog(LOG_ERR, "Error while using stat() for \"%s\"", dst_path);
+                    syslog(LOG_ERR, "Error while using stat() for \"%s\"", src_name);
                     return -1;
                 }
 
                 if (dst_info.st_mtime < src_info.st_mtime)
                 {
-                    syslog(LOG_INFO, "But file \"%s\" has already been changed in \"%s\" => back it up", src_entry->d_name, src_path);
+                    syslog(LOG_INFO, "But file \"%s\" has already been changed in \"%s\" => back it up", src_entry->d_name, src_real_path);
 
                     if (src_entry->d_type == DT_DIR)
                     {
                         if (backup(src_name, dst_name) == -1)
                             return -1;
                     }
-                    else if (src_entry->d_type == DT_REG)
+                    else if (src_entry->d_type == DT_LNK && COPY_TYPE == DEEP_COPY)
+                    {
+                        if (backup(src_name, dst_name) == -1)
+                            return -1;
+                    }
+                    else if (src_entry->d_type == DT_REG || src_entry->d_type == DT_LNK)
                     {
                         if (copy_file(src_name, dst_path, COPY_TYPE) == -1)
                             return -1;
+                    }
+
+                    // UPDATE TIME OF MODIFICATION
+                      
+                    struct utimbuf time_mod = {src_info.st_mtime, src_info.st_mtime};
+                    error_state = utime(dst_path, &time_mod);
+                    if (error_state == -1)
+                    {
+                        syslog(LOG_ERR, "Error while using utime() for \"%s\"", dst_path);
+                        return -1;
                     }
                 }
             }
@@ -203,10 +234,6 @@ int backup(const char src_path[], const char dst_path[])
         }
 
         closedir(src_dir);
-    }
-    else if (S_ISLNK(src_info.st_mode))
-    {
-
     }
 
     return 0;

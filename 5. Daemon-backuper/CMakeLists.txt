@@ -9,17 +9,23 @@ project ("Backuper" LANGUAGES C)
 #########################################################################
 
 # EXECUTABLE FILES PROPERTIES
-set(BACKUPER_NAME "backuperd")
+set(BACKUPER_NAME     "backuperd")
+set(BACKUPER_CTL_NAME "backuperd_ctl")
 
 set(BACKUPER_SRC
         daemon_src/main.c
         daemon_src/daemon.c
         daemon_src/args_handling.c
         daemon_src/backuper.c
-)    
+)   
+
+set(BACKUPER_CTL_SRC
+        daemon_ctl/backuperd_ctl.c
+)  
 
 # EXECUTABLE FILES
-add_executable(${BACKUPER_NAME} ${BACKUPER_SRC})
+add_executable(${BACKUPER_NAME}     ${BACKUPER_SRC})
+add_executable(${BACKUPER_CTL_NAME} ${BACKUPER_CTL_SRC})
 
 target_include_directories(${BACKUPER_NAME} PRIVATE include)
 
