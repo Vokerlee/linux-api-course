@@ -9,6 +9,7 @@ const int SIGRT_TERM     = 40;
 sig_atomic_t RECEIVER_PID = 0;
 
 const useconds_t OVERFLOW_SIGNALS_DELAY = 200; // 0,2 seconds
+const size_t OVERFLOW_MAX_AMOUNT = 10;
 
 void busy_receiver_handler(int signal, siginfo_t *siginfo, void *ptr)
 {
@@ -120,6 +121,8 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid)
 
     size_t counter = 0;
 
+    size_t overflow_times = 0;
+
     while (counter < sizeof(size_t))
     {
         size_t bit_mask = 0xFF << (BITS_PER_BYTE * counter);
@@ -131,9 +134,16 @@ void transmit_size(const size_t data_size, const pid_t reciever_pid)
 
         if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
         {
+            overflow_times++;
+
+            if (overflow_times == OVERFLOW_MAX_AMOUNT)
+                exit(EXIT_FAILURE);
+
             usleep(OVERFLOW_SIGNALS_DELAY);
             continue;
         }
+
+        overflow_times = 0;
         
         counter++;
     }
@@ -154,6 +164,8 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
 
     size_t counter = 0;
 
+    size_t overflow_times = 0;
+
     // All full blocks (8 bytes)
     while (counter < void_data_size)
     {
@@ -165,9 +177,16 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
 
         if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
         {
+            overflow_times++;
+
+            if (overflow_times == OVERFLOW_MAX_AMOUNT)
+                exit(EXIT_FAILURE);
+
             usleep(OVERFLOW_SIGNALS_DELAY);
             continue;
         }
+
+        overflow_times = 0;
 
         counter++;
     }
@@ -188,9 +207,16 @@ void transmit_data(char *data, const size_t data_size, const pid_t reciever_pid)
 
         if (errno == EAGAIN) // real-time signals overflow => wait and repeat again();
         {
+            overflow_times++;
+
+            if (overflow_times == OVERFLOW_MAX_AMOUNT)
+                exit(EXIT_FAILURE);
+
             usleep(OVERFLOW_SIGNALS_DELAY);
             continue;
         }
+
+        overflow_times = 0;
 
         counter++;
     }
