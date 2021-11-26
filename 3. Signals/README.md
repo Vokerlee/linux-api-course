@@ -8,10 +8,12 @@ The main aim is to transfer file from transmitter to receiver through signals ha
 Just print the following after your `git clone`:
 
 ```
+cd Linux-OS-Course/
 cd 3.\ Signals/
 mkdir build
 cd build
 cmake ..
+make
 ```
 
 ## How to use

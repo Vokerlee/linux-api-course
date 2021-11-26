@@ -7,10 +7,12 @@ This program is just initial training program to handle some errors os system ca
 Just print the following after your `git clone`:
 
 ```
+cd Linux-OS-Course/
 cd "1. Bizz buzz"
 mkdir build
 cd build
 cmake ..
+make
 ./bizz test_file res_file
 ```
 

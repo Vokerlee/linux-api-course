@@ -7,10 +7,12 @@ This program is a model of conveyor in console.
 Just print the following after your `git clone`:
 
 ```
+cd Linux-OS-Course/
 cd 2.\ Сonveyor/
 mkdir build
 cd build
 cmake ..
+make
 ./convey test
 ```
 
