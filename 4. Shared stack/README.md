@@ -11,6 +11,7 @@ cd 4.\ Shared\ stack/
 mkdir build
 cd build
 cmake ..
+./test_program1
 ```
 
 ## How to use
