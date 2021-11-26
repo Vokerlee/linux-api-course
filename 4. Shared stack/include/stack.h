@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h> 
+//#include <sys/wait.h>
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -17,6 +18,15 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
+
+#define MUTEX_SEM    0
+#define FULL_SEM     1
+#define EMPTY_SEM    2
+#define INIT_SEM     3
+//#define N_PROC_SEM   4
+#define DESTRUCT_SEM 5
+
+#define N_STACK_SEMAPHORES 6
 
 #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 /* union semun is defined by including <sys/sem.h> */
@@ -37,7 +47,12 @@ typedef struct stack_t
     int capacity;
     int size;
 
+    struct timespec timeout;
+    int wait_type;
+
     key_t stack_key;
+    int shmem_id;
+    int sem_id;
 
     void** memory;
 } stack_t;
@@ -79,7 +94,7 @@ val == -1 Operations return immediatly, probably with errors.
 val == 0  Operations wait infinitely.
 val == 1  Operations wait timeout time.
 */
-int set_wait(int val, struct timespec* timeout);
+int set_wait(stack_t* stack, int val, struct timespec* timeout);
 
 /* Deleting semaphore set */
 void semdel(int key);
