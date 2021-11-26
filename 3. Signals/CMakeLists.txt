@@ -12,9 +12,8 @@ project ("Signals" LANGUAGES C)
 set(TRANSMITTER_NAME "transmitter")
 set(RECIEVER_NAME    "receiver")
 
-set(GENERAL_SRC
+set(ERRORS_SRC
         error_src/sys_err.c
-        interaction/data_manip.c
 )
 
 set(TRANS_SRC
@@ -30,14 +29,12 @@ set(REC_SRC
 )    
 
 # EXECUTABLE FILES
-add_executable(${TRANSMITTER_NAME} ${TRANS_SRC} ${GENERAL_SRC})
-add_executable(${RECIEVER_NAME}    ${REC_SRC}   ${GENERAL_SRC})
+add_executable(${TRANSMITTER_NAME} ${TRANS_SRC} ${ERRORS_SRC})
+add_executable(${RECIEVER_NAME}    ${REC_SRC}   ${ERRORS_SRC})
 
 # ERRORS FUNCTIiONS (GENERAL PURPOSE)
 target_include_directories(${TRANSMITTER_NAME} PRIVATE error_src)
 target_include_directories(${RECIEVER_NAME}    PRIVATE error_src)
-target_include_directories(${TRANSMITTER_NAME} PRIVATE interaction)
-target_include_directories(${RECIEVER_NAME}    PRIVATE interaction)
 
 
 #########################################################################

@@ -2,8 +2,6 @@
 #define REC_HANDLER_H_
 
 #include "rec_err.h"
-#include "settings.h"
-#include "data_manip.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -12,9 +10,15 @@
 #include <assert.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/stat.h>
 
-size_t get_data_master(int fd, sigset_t waitset);
+extern const int SIGRT_TRANSMIT;
+extern const int SIGRT_TERM;
+extern const int SIGRT_BUSY;
+
+size_t get_data_size(sigset_t waitset, pid_t *transmitter_pid);
+
+size_t get_data(char *data, size_t data_size, sigset_t waitset, pid_t transmitter_pid);
+
 
 #endif // !REC_HANDLER_H_

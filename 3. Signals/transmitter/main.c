@@ -2,23 +2,6 @@
 
 extern sig_atomic_t RECEIVER_PID;
 
-extern pid_t MASTER_PID;
-extern pid_t SLAVES_PID[N_PROCESSES];
-extern pid_t REC_SLAVES_PID[N_PROCESSES];
-
-extern struct process_data PROC_INFO[N_PROCESSES];
-
-void atexit_action()
-{
-    union sigval value;
-
-    if (getpid() == MASTER_PID)
-    {
-        for (int i = 0; i < N_PROCESSES; i++)
-            sigqueue(SLAVES_PID[i], SIGKILL, value);
-    }
-}
-
 int main(int argc, char *argv[])
 {
     // CHECKING FOR INPUT PARAMS' ERRORS
@@ -40,9 +23,6 @@ int main(int argc, char *argv[])
     term_handler.sa_sigaction = term_receiver_handler;
     term_handler.sa_flags = SA_SIGINFO;
 
-    sigset_t waitset;
-    set_signals_mask(&waitset);
-
     errno = 0;
     int error_state = sigaction(SIGRT_BUSY, &busy_handler, &old_handler);
     ERR_CHECK(error_state == -1, errno);
@@ -51,11 +31,7 @@ int main(int argc, char *argv[])
     error_state = sigaction(SIGRT_TERM, &term_handler, &old_handler);
     ERR_CHECK(error_state == -1, errno);
 
-    errno = 0;
-    error_state = atexit(atexit_action);
-    ERR_CHECK(error_state == -1, errno);
-
-    transmit(argv[1], waitset, receiver_pid);
+    transmit(argv[1], receiver_pid);
 
     return 0;
 }
