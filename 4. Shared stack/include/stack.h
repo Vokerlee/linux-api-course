@@ -22,9 +22,6 @@
 #define MUTEX_SEM    0
 #define FULL_SEM     1
 #define EMPTY_SEM    2
-//#define INIT_SEM     3
-//#define N_PROC_SEM   4
-//#define DESTRUCT_SEM 5
 
 #define N_STACK_SEMAPHORES 6
 

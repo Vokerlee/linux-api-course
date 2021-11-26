@@ -113,34 +113,6 @@ stack_t* attach_stack(key_t key, int size)
     if (sem_id == -1)
         return NULL;
 
-    // struct sembuf init_sem_lock = {.sem_num = INIT_SEM, .sem_flg = SEM_UNDO, .sem_op = -1};
-    // int error_init_lock = semtimedop(sem_id, &init_sem_lock, 1, &MAX_OP_TIME);
-    // if (error_init_lock == -1 && errno != EAGAIN)
-    // {
-    //     sem_id = attach_sem_set(key); // attach semaphore set
-    //     if (sem_id == -1)
-    //         return NULL;
-
-    //     sem_removed = 1;
-    // }
-    // else if (errno == EAGAIN)
-    // {
-    //     sem_id = attach_sem_set(key); // attach semaphore set
-    //     if (sem_id == -1)
-    //         return NULL;
-
-    //     sem_removed = 1;
-    // }
-
-    // if (sem_removed == 1)
-    // {
-    //     int error_init_lock = semtimedop(sem_id, &init_sem_lock, 1, &MAX_OP_TIME);
-    //     if (error_init_lock == -1)
-    //     {
-    //         perror("Everything is bad");
-    //     }
-    // }
-
     stack_t* stack = (stack_t*) calloc(1, sizeof(stack_t)); // to return from the function
     if (stack == NULL)
         return NULL;
@@ -220,24 +192,6 @@ stack_t* attach_stack(key_t key, int size)
         stack->capacity = *((int *) (stack->memory));
         stack->size     = *((int *) (stack->memory + sizeof(void *)));
     }
-
-    // struct sembuf add_sem_proc = {.sem_num = N_PROC_SEM, .sem_flg = SEM_UNDO, .sem_op = +1};
-    // int error_add_proc = semtimedop(sem_id, &add_sem_proc, 1, &MAX_OP_TIME);
-    // if (error_add_proc == -1)
-    // {
-    //     perror("error in semtimedop() while attaching stack (attach_stack() call)");
-    //     free(stack);
-    //     return NULL;
-    // }
-
-    // struct sembuf init_sem_unlock = {.sem_num = INIT_SEM, .sem_flg = SEM_UNDO, .sem_op = +1};
-    // int error_init_unlock = semtimedop(sem_id, &init_sem_unlock, 1, &MAX_OP_TIME);
-    // if (error_init_unlock == -1)
-    // {
-    //     perror("error in semtimedop() while attaching stack (attach_stack() call)");
-    //     free(stack);
-    //     return NULL;
-    // }
 
     stack->stack_key = key;
 

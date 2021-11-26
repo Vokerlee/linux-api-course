@@ -2,10 +2,26 @@
 
 sig_atomic_t TRANSMITTER_PID = 0;
 
+extern pid_t MASTER_PID;
+extern pid_t SLAVES_PID[N_PROCESSES];
+extern pid_t TRANS_SLAVES_PID[N_PROCESSES];
+
+extern struct process_data PROC_INFO[N_PROCESSES];
+
 void atexit_action()
 {
     union sigval value;
-    sigqueue(TRANSMITTER_PID, SIGRT_TERM, value);
+
+    if (getpid() == MASTER_PID)
+    {
+        for (int i = 0; i < N_PROCESSES; i++)
+            sigqueue(SLAVES_PID[i], SIGKILL, value);
+    }
+    else
+    {
+        for (int i = 0; i < N_PROCESSES; i++)
+            sigqueue(TRANS_SLAVES_PID[i], SIGKILL, value);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -18,52 +34,25 @@ int main(int argc, char *argv[])
     int input_state = error_input_vh(argc, argv);
     ERR_CHECK(input_state != 0, input_state);
 
-// OPEN FILE
-
     errno = 0;
-    int fd = open(argv[1], O_WRONLY | O_CREAT, 0666);
+    int fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0666);
     ERR_CHECK(fd == -1, errno);
 
-// PRINT PID FOR CONVENIENCE
-
-    printf("My pid = %d\n", getpid());
+    MASTER_PID = getpid();
 
 // SIGNALS SETTINGS
 
     sigset_t waitset;
-
-    sigemptyset(&waitset);
-    sigaddset(&waitset, SIGRT_TRANSMIT);
-    sigaddset(&waitset, SIGRT_TERM);
-    sigaddset(&waitset, SIGTERM);
-    sigaddset(&waitset, SIGINT);
-
-    error_state = sigprocmask(SIG_BLOCK, &waitset, NULL);
-    ERR_CHECK(error_state == -1, errno);
-
-// SIGNALS HANDLING
-
-    pid_t transmitter_pid = 0;
-
-    size_t data_size = get_data_size(waitset, &transmitter_pid);
-    printf("Transmitter pid = %d\n", transmitter_pid);
-    printf("Request size = %zu\n", data_size);
+    set_signals_mask(&waitset);
 
     errno = 0;
     error_state = atexit(atexit_action);
     ERR_CHECK(error_state == -1, errno);
-    
-    char *data = (char *) calloc(data_size, sizeof(char));
-    ERR_CHECK(data == NULL, BAD_ALLOC);
 
-    size_t get_data_size = get_data(data, data_size, waitset, transmitter_pid);
-    printf("Read size = %zu [%d%%]\n", get_data_size, (int)((double) get_data_size * 100/ data_size));
+// MAIN WORK
 
-    errno = 0;
-    error_state = write(fd, data, get_data_size);
-    ERR_CHECK(error_state == -1, errno);
+    get_data_master(fd, waitset);
 
-    free(data);
     close(fd);
 
     exit(0);
