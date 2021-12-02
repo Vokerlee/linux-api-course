@@ -51,7 +51,7 @@ typedef struct stack_t
     int shmem_id;
     int sem_id;
 
-    void** memory;
+    void **memory;
 } stack_t;
 
 /* Attach (create if needed) shared memory stack to the process.

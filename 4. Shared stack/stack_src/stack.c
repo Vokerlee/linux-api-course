@@ -141,22 +141,13 @@ stack_t* attach_stack(key_t key, int size)
         stack->shmem_id = shmem_id;
         stack->sem_id   = sem_id;
 
-        stack->capacity = *((int *) (stack->memory));
-        stack->size     = *((int *) (stack->memory + sizeof(void*)));
+        stack->capacity = *((int *)(stack->memory));
+        stack->size     = *((int *)(stack->memory + 1));
     }
     else
     {
-        shmem_id = shmget(key, (size + 2) * sizeof(void *), 0666);
-        if (shmem_id == -1)
-        {
-            perror("error in shmget() while creating stack");
-            delete_sem_set(key);
-            free(stack);
+        stack->memory = (void **) shmat(shmem_id, NULL, 0);
 
-            return NULL;
-        }
-
-        stack->memory =  (void *) shmat(shmem_id, NULL, 0);
         if (stack->memory == (void *) -1)
         {
             perror("error in shmat() while creating stack (attach_stack() call)");
@@ -184,13 +175,13 @@ stack_t* attach_stack(key_t key, int size)
         }
             
         memcpy((void *) stack->memory, &max_size, sizeof(int));
-        memcpy((void *) stack->memory + sizeof(void *), &initial_size, sizeof(int));
+        memcpy((void *)(stack->memory + 1), &initial_size, sizeof(int));
 
         stack->shmem_id = shmem_id;
         stack->sem_id   = sem_id;
 
-        stack->capacity = *((int *) (stack->memory));
-        stack->size     = *((int *) (stack->memory + sizeof(void *)));
+        stack->capacity = *((int *)(stack->memory));
+        stack->size     = *((int *)(stack->memory + 1));
     }
 
     stack->stack_key = key;
@@ -203,7 +194,7 @@ int get_size(stack_t* stack)
     if (stack == NULL)
         return -1;
 
-    stack->size = *((int *)(stack->memory + sizeof(void *))); // updating size
+    stack->size = *((int *)(stack->memory + 1)); // updating size
 
     return stack->capacity;
 }
@@ -213,7 +204,7 @@ int get_count(stack_t* stack)
     if (stack == NULL)
         return -1;
     
-    stack->size = *((int *)(stack->memory + sizeof(void *))); // updating size
+    stack->size = *((int *)(stack->memory + 1)); // updating size
    
     return stack->size;
 }
@@ -253,7 +244,7 @@ int mark_destruct(stack_t* stack)
 
 int push(stack_t* stack, void* value)
 {
-    if (stack == NULL || value == NULL)
+    if (stack == NULL)
         return -1;
 
     int error_state = 0;
@@ -301,12 +292,12 @@ int push(stack_t* stack, void* value)
 
     // Main operations start
 
-    stack->size = *((int *)(stack->memory + sizeof(void *))); // updating size
-    memcpy((void *)(stack->memory + (stack->size + 2) * sizeof(void *)), &value, sizeof(void *)); // placing data to memory
+    stack->size = *((int *)(stack->memory + 1)); // updating size
+    memcpy((void *)(stack->memory + (stack->size + 2)), &value, sizeof(void *)); // placing data to memory
 
     int new_size = stack->size + 1;
     stack->size  = new_size;
-    memcpy((void *) (stack->memory + sizeof(void *)), &new_size, sizeof(int));
+    memcpy((void *)(stack->memory + 1), &new_size, sizeof(int));
 
     // Main operations end
 
@@ -377,14 +368,14 @@ int pop(stack_t* stack, void** value)
    
     // Main operations start
 
-    stack->size = *((int *)(stack->memory + sizeof(void *))); // updating size
+    stack->size = *((int *)(stack->memory + 1)); // updating size
 
-    void** pop_value = stack->memory + (1 + stack->size) * sizeof(void *);
+    void** pop_value = stack->memory + 1 + stack->size;
     *value = *pop_value;
 
     int new_size = stack->size - 1;
     stack->size = new_size;
-    memcpy((void *)(stack->memory + sizeof(void *)), &new_size, sizeof(int));
+    memcpy((void *)(stack->memory + 1), &new_size, sizeof(int));
 
     // Main operations end
 
@@ -433,11 +424,12 @@ void print_stack(stack_t* stack, FILE* fout)
     if (stack == NULL || fout == NULL)
         return;
 
-    int size = *((int *)(stack->memory + sizeof(void *)));
+    int size = *((int *)(stack->memory + 1));
+    int capacity = stack->capacity;
 
     // BASE INFO
     fprintf(fout, "\n\n\nStack[%p]:\n", stack);
-    fprintf(fout, "Stack max size: %d\n", stack->capacity);
+    fprintf(fout, "Stack max size: %d\n", capacity);
     fprintf(fout, "Stack cur size: %d\n", size);
     fprintf(fout, "Stack shared memory beginning: %p\n", stack->memory);
 
@@ -445,10 +437,13 @@ void print_stack(stack_t* stack, FILE* fout)
     if (stack->memory)
     {
         fprintf(fout, "Stack shared memory[0]: %d\n", *((int *) stack->memory));
-        fprintf(fout, "Stack shared memory[1]: %d\n", *((int *)(stack->memory + sizeof(void *))));
+        fprintf(fout, "Stack shared memory[1]: %d\n", *((int *)(stack->memory + 1)));
 
         for (size_t i = 0; i < size; ++i)
-            fprintf(fout, "Stack [%d] = %d\n", i, *((int *)(stack->memory + (2 + i) * sizeof(void *))));
+            fprintf(fout, "Stack *[%d] = %zu\n", i, *((size_t *)(stack->memory + (2 + i) * 1)));
+
+        for (size_t i = size; i < capacity; ++i)
+            fprintf(fout, "Stack  [%d] = %zu\n", i, *((size_t *)(stack->memory + (2 + i) * 1)));
     }
     
     fprintf(fout, "\n\n\n");
