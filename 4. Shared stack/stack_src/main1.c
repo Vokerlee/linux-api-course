@@ -4,11 +4,11 @@ int main(int argc, char *argv[])
 {
     int error = 0;
     key_t key = 20000;
-    size_t stack_size = 1000;
+    size_t stack_size = 10000;
 
     pid_t pid = getpid();
 
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 10; i++)
     {
         if (fork() == -1)
         {
@@ -26,9 +26,9 @@ int main(int argc, char *argv[])
     push(stack, (void *) value);
     push(stack, (void *) value);
     push(stack, (void *) value);
-    pop(stack, (void **) &value);
-    pop(stack, (void **) &value);
-    pop(stack, (void **) &value);
+    // pop(stack, (void **) &value);
+    // pop(stack, (void **) &value);
+    // pop(stack, (void **) &value);
     
     if (pid == getpid())
     {

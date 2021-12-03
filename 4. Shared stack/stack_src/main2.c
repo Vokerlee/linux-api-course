@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {
     int error = 0;
     key_t key = 20000;
-    size_t stack_size = 1000;
+    size_t stack_size = 10000;
 
     stack_t* stack = attach_stack(key, stack_size);
     if (stack == NULL)

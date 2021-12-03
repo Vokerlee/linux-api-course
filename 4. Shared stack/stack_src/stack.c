@@ -299,6 +299,10 @@ int push(stack_t* stack, void* value)
     stack->size  = new_size;
     memcpy((void *)(stack->memory + 1), &new_size, sizeof(int));
 
+    // Update FULL_SEM
+
+    semctl(stack->sem_id, FULL_SEM, SETVAL, stack->capacity - stack->size);
+
     // Main operations end
 
     struct sembuf mutex_unlock = {.sem_num = MUTEX_SEM, .sem_op = +1, .sem_flg = SEM_UNDO};
@@ -376,6 +380,10 @@ int pop(stack_t* stack, void** value)
     int new_size = stack->size - 1;
     stack->size = new_size;
     memcpy((void *)(stack->memory + 1), &new_size, sizeof(int));
+
+    // EMPTY_SEM update
+
+    semctl(stack->sem_id, EMPTY_SEM, SETVAL, stack->size);
 
     // Main operations end
 
