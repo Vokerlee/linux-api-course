@@ -17,6 +17,7 @@ set(BACKUPER_SRC
         daemon_src/daemon.c
         daemon_src/args_handling.c
         daemon_src/backuper.c
+        hash_table/hash_table.c
 )   
 
 set(BACKUPER_CTL_SRC
@@ -28,6 +29,7 @@ add_executable(${BACKUPER_NAME}     ${BACKUPER_SRC})
 add_executable(${BACKUPER_CTL_NAME} ${BACKUPER_CTL_SRC})
 
 target_include_directories(${BACKUPER_NAME} PRIVATE include)
+target_include_directories(${BACKUPER_NAME} PRIVATE hash_table)
 
 #########################################################################
 

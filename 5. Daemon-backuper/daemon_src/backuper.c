@@ -131,9 +131,9 @@ int backup(const char src_path[], const char dst_path[])
 
     int error_state = 0;
 
-    struct stat src_info;
-    struct stat dst_info;
-    struct stat link_info;
+    struct stat src_info  = {0};
+    struct stat dst_info  = {0};
+    struct stat link_info = {0};
 
     error_state = stat(src_path, &src_info);
     if (error_state == -1)
@@ -153,7 +153,7 @@ int backup(const char src_path[], const char dst_path[])
             }
         }
         else
-            strcpy(src_real_path, src_path);
+            strcpy(src_real_path, src_path);    
 
         DIR *src_dir = opendir(src_real_path);
         if (src_dir == NULL)
@@ -232,7 +232,7 @@ int backup(const char src_path[], const char dst_path[])
 
             memset(src_name, 0, sizeof(src_name));
         }
-
+        
         closedir(src_dir);
     }
 
