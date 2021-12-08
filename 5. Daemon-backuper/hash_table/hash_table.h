@@ -5,20 +5,39 @@
 #include <limits.h>
 #include <string.h>
 
+struct list_entry_s;
+
 struct entry_s
 {
 	int key;
 	char *value;
+
 	struct entry_s *next;
 	struct entry_s *prev;
+
+	struct list_entry_s *list_node;
+
+	int n_repeats;
+};
+
+struct list_entry_s
+{
+	struct entry_s *hash_table_entry;
+
+	struct list_entry_s *next;
+	struct list_entry_s *prev;
 };
 
 typedef struct entry_s entry_t;
+typedef struct list_entry_s list_entry_t;
 
 struct hashtable_s
 {
 	size_t size;
-	struct entry_s **table;	
+	entry_t **table;	
+
+	list_entry_t *start;
+	list_entry_t *end;
 
 	size_t n_entries;
 };
@@ -34,3 +53,9 @@ entry_t *ht_newpair(int key, char *value);
 int ht_set(hashtable_t *hashtable, int key, char *value);
 
 char *ht_get(hashtable_t *hashtable, int key);
+
+int ht_remove(hashtable_t *hashtable, int key);
+
+int ht_clear(hashtable_t *hashtable);
+
+int ht_delete(hashtable_t *hashtable);

@@ -1,5 +1,15 @@
 #include "hash_table.h"
 
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <utime.h>
+#include <sys/inotify.h>
+#include <syslog.h>
+
 /* Create a new hashtable. */
 hashtable_t *ht_create(int size)
 {
@@ -21,6 +31,9 @@ hashtable_t *ht_create(int size)
 
 	hashtable->size = size;
 	hashtable->n_entries = 0;
+
+	hashtable->start = NULL;
+	hashtable->end = NULL;
 
 	return hashtable;	
 }
@@ -54,6 +67,9 @@ entry_t *ht_newpair(int key, char *value)
 	newpair->next = NULL;
 	newpair->prev = NULL;
 	newpair->key  = key;
+	newpair->list_node = NULL;
+
+	newpair->n_repeats = 0;
 
 	return newpair;
 }
@@ -69,7 +85,7 @@ int ht_set(hashtable_t *hashtable, int key, char *value)
 	int bin = 0;
 
 	entry_t *newpair = NULL;
-	entry_t *next    = NULL;newpair->next = NULL;
+	entry_t *next    = NULL;
 	entry_t *last    = NULL;
 
 	bin = ht_hash(hashtable, key);
@@ -89,6 +105,8 @@ int ht_set(hashtable_t *hashtable, int key, char *value)
 		if (next->value == NULL)
 			return -1;
 
+		next->n_repeats++;
+
 	/* Nope, could't find it.  Time to grow a pair. */
 	}
 	else
@@ -96,6 +114,19 @@ int ht_set(hashtable_t *hashtable, int key, char *value)
 		newpair = ht_newpair(key, value);
 		if (newpair == NULL)
 			return -1;
+
+		list_entry_t *list_node = calloc(1, sizeof(list_entry_t));
+		if (list_node == NULL)
+		{
+			free(newpair);
+			return -1;
+		}
+
+		if (hashtable->n_entries == 0)
+		{
+			hashtable->start = list_node;
+			hashtable->end   = list_node;
+		}
 
 		/* We're at the start of the linked list in this bin. */
 		if (next == hashtable->table[bin])
@@ -119,6 +150,17 @@ int ht_set(hashtable_t *hashtable, int key, char *value)
 			newpair->prev = last;
 			last->next = newpair;
 		}
+
+		list_node->hash_table_entry = newpair;
+
+		if (hashtable->n_entries != 0)
+		{
+			hashtable->end->next = list_node;
+			list_node->prev = hashtable->end;
+		}
+		
+		hashtable->end = list_node;
+		newpair->list_node = list_node;
 	}
 
 	hashtable->n_entries++;
@@ -159,19 +201,80 @@ int ht_remove(hashtable_t *hashtable, int key)
 	bin = ht_hash(hashtable, key);
 	pair = hashtable->table[bin];
 
-	if (pair != NULL)
+	if (pair != NULL && pair->n_repeats == 0)
 	{
 		hashtable->n_entries--;
 		if (pair->prev != NULL)
 			pair->prev->next = NULL;
 
+		struct list_entry_s *node = pair->list_node;
+		struct list_entry_s *prev_node = node->prev;
+		struct list_entry_s *next_node = node->next;
+
+		if (hashtable->start == node)
+			hashtable->start = node->next;
+		if (hashtable->end == node)
+			hashtable->end = node->prev;
+
 		free(pair->value);
 		free(pair);
+		free(node);
 
 		hashtable->table[bin] = NULL;
 
+		if (prev_node != NULL)
+			prev_node->next = next_node;
+
+		if (next_node != NULL)
+			next_node->prev = prev_node;
+
+		return 0;
+	}
+	else if (pair != NULL)
+	{
+		pair->n_repeats--;
 		return 0;
 	}
 
 	return -1;
 }
+
+int ht_delete(hashtable_t *hashtable)
+{
+	int error = ht_clear(hashtable);
+	if (error == -1)
+		return -1;
+
+	free(hashtable->table);
+	free(hashtable);
+
+	return 0;
+}
+
+int ht_clear(hashtable_t *hashtable)
+{
+	if (hashtable == NULL)
+		return -1;
+
+	list_entry_t *list_entry = hashtable->start;
+
+    while (list_entry)
+    {
+		list_entry_t *list_entry_next = list_entry->next;
+
+		free(list_entry->hash_table_entry->value);
+		free(list_entry->hash_table_entry);
+		free(list_entry);
+
+        list_entry = list_entry_next;
+    }
+
+	hashtable->start = NULL;
+	hashtable->end   = NULL;
+
+	hashtable->n_entries = 0;
+
+	return 0;
+}
+
+
