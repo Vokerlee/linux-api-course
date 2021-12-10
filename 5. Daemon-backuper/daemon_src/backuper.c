@@ -74,6 +74,7 @@ void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
         switch(signal)
         {
             case SIGALRM:
+                remain_seconds = alarm(BACKUP_PERIOD);
                 if (BACKUP_MODE == INOTIFY_MODE)
                 {
                     reconfig_counter++;
@@ -553,7 +554,7 @@ int backup_update(int inot_fd, const char src_path[], const char dst_path[])
                 if ((event->mask & IN_ISDIR) || (event->mask & IN_MOVED_TO))
                 {
                     if (copy_file(src_name, dst_name, COPY_TYPE) == -1)
-                        continue;  
+                        continue;
                 }
                 else
                     syslog(LOG_INFO, "File \"%s\" in \"%s/%s\" is still empty => back up is delayed", event->name, src_path, ht_get(WATCH_FD_HASH_TABLE, event->wd));              
