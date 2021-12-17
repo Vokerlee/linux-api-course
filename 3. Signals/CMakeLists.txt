@@ -18,13 +18,13 @@ set(GENERAL_SRC
 )
 
 set(TRANS_SRC
-        transmitter/main.c
+        transmitter/trans_main.c
         transmitter/trans_err.c
         transmitter/trans_handler.c
 )
 
 set(REC_SRC
-        receiver/main.c
+        receiver/rec_main.c
         receiver/rec_err.c
         receiver/rec_handler.c
 )    
