@@ -8,6 +8,22 @@ project ("Conveyor" LANGUAGES C)
 
 #########################################################################
 
+# ASSEMBLY OPTIONS
+
+add_compile_options(
+    -Wall
+
+    -Wno-pointer-to-int-cast
+    -Wno-int-to-pointer-cast
+    -Wno-variadic-macros
+    -Wno-unused-parameter
+    -Wno-unused-function
+    -Wno-sign-compare
+    -Wno-misleading-indentation
+)
+
+#########################################################################
+
 # EXECUTABLE FILE PROPERTIES
 set(FILE_NAME "convey")
 
@@ -25,17 +41,5 @@ set(SOURCES
 
 # EXECUTABLE FILE
 add_executable(${FILE_NAME} ${SOURCES})
-
-#########################################################################
-
-# ASSEMBLY OPTIONS
-
-add_compile_options(
-    -Werror
-
-    -Wall
-    -Wextra
-    -Wpedantic
-)
 
 #########################################################################

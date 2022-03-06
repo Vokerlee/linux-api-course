@@ -1,6 +1,8 @@
 #ifndef VOKERLEE_STACK_H_
 #define VOKERLEE_STACK_H_
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h> 

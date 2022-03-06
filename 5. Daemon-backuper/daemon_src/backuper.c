@@ -63,7 +63,7 @@ void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
         syslog(LOG_INFO, "Watch initialization successfully finished");
     }
 
-    unsigned int remain_seconds = alarm(BACKUP_PERIOD);
+    alarm(BACKUP_PERIOD);
     syslog(LOG_INFO, "The following backup is in %u seconds", BACKUP_PERIOD);
 
     while(1)
@@ -74,7 +74,7 @@ void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
         switch(signal)
         {
             case SIGALRM:
-                remain_seconds = alarm(BACKUP_PERIOD);
+                alarm(BACKUP_PERIOD);
                 if (BACKUP_MODE == INOTIFY_MODE)
                 {
                     reconfig_counter++;
@@ -94,7 +94,7 @@ void launch_backuper(char src_path[], char dst_path[], const sigset_t waitset)
                     }
                     else
                     {
-                        remain_seconds = alarm(BACKUP_PERIOD);
+                        alarm(BACKUP_PERIOD);
                         backup_update(inot_fd, src_path, dst_path);
                         syslog(LOG_INFO, "The following backup is in %u seconds", BACKUP_PERIOD);
                     }
