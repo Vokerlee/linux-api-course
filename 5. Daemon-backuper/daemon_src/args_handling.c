@@ -12,12 +12,12 @@ const char *get_error_msg(int errnum)
 {
     switch(errnum)
     {
-        case ARGS_OVERFLOW:                                     
+        case ARGS_OVERFLOW:
             return "too many arguments (maximum 3 possible)";
-        case ARGS_UNDERFLOW:                                     
-            return "too few arguments (at least 2 required)";  
+        case ARGS_UNDERFLOW:
+            return "too few arguments (at least 2 required)";
         case UNKNOWN_ARG:
-            return "unknown option of the program";                                           
+            return "unknown option of the program";
     }
 
     return NULL;
@@ -52,7 +52,7 @@ int check_arguments(int argc, char** argv)
         if (shallow_copy == 0)
             COPY_TYPE = SHALLOW_COPY;
         else
-            COPY_TYPE = DEEP_COPY; 
+            COPY_TYPE = DEEP_COPY;
     }
 
     return 0;
@@ -73,7 +73,7 @@ int check_dest_dir(char* src, char* dst) // destination cannot be source
 int check_source_dir(char* src)
 {
     assert(src);
-    
+
     DIR *dir = opendir(src);
     if (dir == NULL)
         return -1;

@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     errno = 0;
     char *src_realpath_err = realpath(argv[1], src_path);
     if (src_realpath_err == NULL)
-    {   
+    {
         int error = errno;
         fprintf(stderr, "source directory error in ");
         errno = error;
@@ -46,12 +46,12 @@ int main(int argc, char** argv)
     errno = 0;
     char *dst_realpath_err = realpath(argv[2], dst_path);
     if (dst_realpath_err == NULL)
-    {   
+    {
         int error = errno;
         fprintf(stderr, "destination directory error in ");
         errno = error;
         perror("realpath()");
-        
+
         exit(EXIT_FAILURE);
     }
 
